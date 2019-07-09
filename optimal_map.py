@@ -14,25 +14,22 @@ import matplotlib.pyplot as plt
 
 
 class CoordinateTransform(object):
-    def __init__(self, degree=(5,5), maskconstant=True):
+    def __init__(self, degree=(5, 5)):
         """
         Represents a coordinate transformation as a polynomial.
 
         Since we don't care about overall shifts (x -> x + a) we start
-        at linear order in the polynomial -- actually that's hard to
-        do b/c we need linear order in x and y. So we just keep the
-        zeroth term zero.
+        at linear order in the polynomial by keeping the zeroth term
+        zero.
         """
         self.degree = degree
         shp = [2] + (np.array(degree)+1).tolist()
         self._coeffs = np.zeros(shp, dtype='float')  # 2 for x,y
-        self.maskconstant = maskconstant
         self._mask = np.ones(shp, dtype='bool')
-        if maskconstant:
-            self._mask[0,0] = False
+        self._mask[0, 0] = False
         # Then we want to start at a reasonable param value (X=x etc)
-        self._coeffs[0,1,0] = 1
-        self._coeffs[1,0,1] = 1  # FIXME check!!!
+        self._coeffs[0, 1, 0] = 1
+        self._coeffs[1, 0, 1] = 1  # FIXME check!!!
 
     def update(self, params):
         self._coeffs[self._mask] = params.copy()
@@ -55,9 +52,9 @@ class CoordinateTransform(object):
         x_new : {"X", "Y"}
         x_old : {"x", "y"}
         """
-        coef_ind = {'X':0, 'Y':1}[x_new.upper()]
-        aij_ind = {'x':0, 'y':1}[x_old.lower()]
-        shp = {'x':(-1,1), 'y':(1,-1)}[x_old.lower()]
+        coef_ind = {'X': 0, 'Y': 1}[x_new.upper()]
+        aij_ind = {'x': 0, 'y': 1}[x_old.lower()]
+        shp = {'x':(-1, 1), 'y':(1, -1)}[x_old.lower()]
         aij = self._coeffs[coef_ind]
         t = np.arange(aij.shape[aij_ind]).reshape(shp)
         return np.roll(aij * t, -1, axis=aij_ind)
