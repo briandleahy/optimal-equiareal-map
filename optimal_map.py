@@ -114,6 +114,14 @@ class FittingWrapper(object):
         self.area_penalty = area_penalty
 
     def calc_metric_residuals(self):
+        newmetric = self._calculate_metric()
+        # 4. The deviation from perfection:
+        deviation_from_isometry = newmetric - np.eye(2).reshape(1, 2, 2)
+        # 5. The equiareal penalties
+        deviation_from_equiareal = np.linalg.det(newmetric) - 1.
+        return deviation_from_isometry.ravel(), deviation_from_equiareal
+
+    def _calculate_metric(self):
         # 1. The old metric
         oldmetric = self.g0.metric
         # 2. The transformation matrix dX/dx
@@ -124,11 +132,7 @@ class FittingWrapper(object):
             dXdx[:, a, b] = polyval2d(xy[:, 0], xy[:, 1], aij)
         # 3. The new metric
         newmetric = np.einsum('...ij,...ik,...jl', oldmetric, dXdx, dXdx)
-        # 4. The deviation from perfection:
-        isometric_error = newmetric - np.eye(2).reshape(1, 2, 2)
-        # 5. The equiareal penalties
-        da = np.linalg.det(newmetric) - 1.
-        return isometric_error.ravel(), da
+        return newmetric
 
     def update(self, params):
         self.transform.update(params)

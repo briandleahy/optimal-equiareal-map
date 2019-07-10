@@ -171,6 +171,60 @@ class TestLambertProjection(unittest.TestCase):
         self.assertTrue(np.allclose(det, 1, **TOLS))
 
 
+class TestFittingWrapper(unittest.TestCase):
+    def test_calculate_metric_when_no_transformation(self):
+        fitter = FittingWrapper()
+        old_metric = fitter.g0.metric
+        new_metric = fitter._calculate_metric()
+        self.assertTrue(np.allclose(old_metric, new_metric, **TOLS))
+
+    def test_params(self):
+        fitter = FittingWrapper(area_penalty=1.0)
+        self.assertTrue(np.all(fitter.params == fitter.transform.params))
+
+    def test_update_calls_transform(self):
+        fitter = FittingWrapper()
+        transform = fitter.transform
+        old_params = transform.params.copy()
+
+        np.random.seed(72)
+        new_params = np.random.randn(old_params.size)
+        fitter.update(new_params)
+        updated_params = transform.params
+        self.assertTrue(np.all(new_params == updated_params))
+
+    def test_update_area_penalty(self):
+        fitter = FittingWrapper(area_penalty=1.0)
+        assert fitter.area_penalty == 1.0
+        new_penalty = 2.0
+        fitter.update_area_penalty(new_penalty)
+        self.assertTrue(fitter.area_penalty == new_penalty)
+
+    def test_call_uses_area_penalty(self):
+        fitter = FittingWrapper(area_penalty=1.0)
+        equiareal_params = fitter.params
+        params = (
+            equiareal_params + 1e-2 * np.random.randn(equiareal_params.size))
+
+        fitter.update_area_penalty(0.0)
+        vals_0 = fitter.call(params)
+        fitter.update_area_penalty(2.0)
+        vals_2 = fitter.call(params)
+        self.assertTrue(np.linalg.norm(vals_0) < np.linalg.norm(vals_2))
+
+    def test_area_penalty_does_not_effect_equiareal(self):
+        fitter = FittingWrapper(area_penalty=1.0)
+        params = fitter.params
+
+        fitter.update_area_penalty(0.0)
+        vals_0 = fitter.call(params)
+        fitter.update_area_penalty(2.0)
+        vals_2 = fitter.call(params)
+        self.assertTrue(
+            np.isclose(np.linalg.norm(vals_0), np.linalg.norm(vals_2), **TOLS))
+
+
+
 if __name__ == '__main__':
     unittest.main()
 
