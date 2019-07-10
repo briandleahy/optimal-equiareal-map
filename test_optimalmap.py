@@ -224,6 +224,14 @@ class TestFittingWrapper(unittest.TestCase):
             np.isclose(np.linalg.norm(vals_0), np.linalg.norm(vals_2), **TOLS))
 
 
+class TestMisc(unittest.TestCase):
+    def test_l2av_with_ones(self):
+        t = np.ones(10)
+        self.assertTrue(np.isclose(l2av(t), 1.0, **TOLS))
+
+    def test_l2av_with_twos(self):
+        t = np.ones(10) * 2
+        self.assertTrue(np.isclose(l2av(t), 4.0, **TOLS))
 
 if __name__ == '__main__':
     unittest.main()
