@@ -170,6 +170,22 @@ class TestLambertQuadrature(unittest.TestCase):
         self.assertTrue(np.isclose(surface_area, 4 * np.pi, **TOLS))
 
 
+class TestLambertProjection(unittest.TestCase):
+    def test_init_gives_diagonal_metric(self):
+        np.random.seed(72)
+        xypts = np.random.randn(200, 2)
+        lambert = LambertProjection(xypts)
+        self.assertTrue(np.all(lambert.metric[:, 0, 1] == 0))
+        self.assertTrue(np.all(lambert.metric[:, 1, 0] == 0))
+
+    def test_init_gives_metric_with_determinant_of_one(self):
+        np.random.seed(72)
+        xypts = np.random.randn(200, 2)
+        lambert = LambertProjection(xypts)
+        det = np.linalg.det(lambert.metric)
+        self.assertTrue(np.allclose(det, 1, **TOLS))
+
+
 if __name__ == '__main__':
     unittest.main()
 

@@ -99,9 +99,8 @@ class LambertProjection(object):
         sin2theta = 1 - xypts[:, 1]**2
         self.metric[:, 0, 0] = 1.0 / sin2theta
         self.metric[:, 1, 1] = sin2theta
-        self.residual_metric = self.metric - np.eye(2).reshape(1, 2, 2)
         # -- we don't need to regularize with a +eps b/c the legendre
-        # points aren't selected at 0
+        # points aren't selected at y=+-1
 
 
 class FittingWrapper(object):
