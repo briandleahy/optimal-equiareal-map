@@ -4,11 +4,11 @@ Figure out why it's cropped at the poles
 """
 import itertools
 import numpy as np
-polyval2d = np.polynomial.polynomial.polyval2d  # shorter alias
 from scipy.optimize import leastsq
 from scipy.interpolate import griddata
-
 import matplotlib.pyplot as plt
+
+polyval2d = np.polynomial.polynomial.polyval2d  # shorter alias
 
 # ~~~~~~~ Fitting functions ~~~~~~~~~~~~~
 
@@ -54,7 +54,7 @@ class CoordinateTransform(object):
         """
         coef_ind = {'X': 0, 'Y': 1}[x_new.upper()]
         aij_ind = {'x': 0, 'y': 1}[x_old.lower()]
-        shp = {'x':(-1, 1), 'y':(1, -1)}[x_old.lower()]
+        shp = {'x': (-1, 1), 'y': (1, -1)}[x_old.lower()]
         aij = self._coeffs[coef_ind]
         t = np.arange(aij.shape[aij_ind]).reshape(shp)
         return np.roll(aij * t, -1, axis=aij_ind)
@@ -73,7 +73,7 @@ class LambertCylindricalQuadrature(object):
         wx *= np.pi
         py, wy = np.polynomial.legendre.leggauss(self.nypts)
         xp, yp = np.meshgrid(px, py, indexing='ij')
-        self._xypts = np.array([[x,y] for x,y in zip(xp.flat, yp.flat)])
+        self._xypts = np.array([[x, y] for x, y in zip(xp.flat, yp.flat)])
         self._xywts = np.outer(wx, wy).ravel()
         self._xywts_sqrt = np.sqrt(self._xywts)
 
@@ -89,23 +89,23 @@ class LambertCylindricalQuadrature(object):
 
     @property
     def pts(self):
-        return self._xypts
+        return self._xypts.copy()
 
 
 class LambertProjection(object):
     def __init__(self, xypts):
-        """xypts = [N,2] = (phi, theta)"""
-        self.metric = np.zeros([xypts.shape[0], 2,2])
-        sin2theta = 1 - xypts[:,1]**2
-        self.metric[:,0,0] = 1./sin2theta
-        self.metric[:,1,1] = sin2theta
-        self.residual_metric = self.metric - np.eye(2).reshape(1,2,2)
+        """xypts = [N, 2] = (phi, theta)"""
+        self.metric = np.zeros([xypts.shape[0], 2, 2])
+        sin2theta = 1 - xypts[:, 1]**2
+        self.metric[:, 0, 0] = 1.0 / sin2theta
+        self.metric[:, 1, 1] = sin2theta
+        self.residual_metric = self.metric - np.eye(2).reshape(1, 2, 2)
         # -- we don't need to regularize with a +eps b/c the legendre
         # points aren't selected at 0
 
 
 class FittingWrapper(object):
-    def __init__(self, nquadpts=30, degree=(5,5), area_penalty=1.):
+    def __init__(self, nquadpts=30, degree=(5, 5), area_penalty=1.):
         # 1. the quadrature points
         self.quadobj = LambertCylindricalQuadrature(nxpts=nquadpts)
         # 2. the original metric
@@ -119,14 +119,14 @@ class FittingWrapper(object):
         oldmetric = self.g0.metric
         # 2. The transformation matrix dX/dx
         xy = self.quadobj.pts
-        dXdx = np.zeros([xy.shape[0],2,2], dtype='float')
-        for a, b in itertools.product([0,1], [0,1]):
+        dXdx = np.zeros([xy.shape[0], 2, 2], dtype='float')
+        for a, b in itertools.product([0, 1], [0, 1]):
             aij = self.transform.eval_dXdx(x_new='XY'[a], x_old='xy'[b])
-            dXdx[:,a,b] = polyval2d(xy[:,0], xy[:,1], aij)
+            dXdx[:, a, b] = polyval2d(xy[:, 0], xy[:, 1], aij)
         # 3. The new metric
         newmetric = np.einsum('...ij,...ik,...jl', oldmetric, dXdx, dXdx)
         # 4. The deviation from perfection:
-        isometric_error = newmetric - np.eye(2).reshape(1,2,2)
+        isometric_error = newmetric - np.eye(2).reshape(1, 2, 2)
         # 5. The equiareal penalties
         da = np.linalg.det(newmetric) - 1.
         return isometric_error.ravel(), da
@@ -154,6 +154,7 @@ def l2av(x):
 
 # ~~~~~~~~ Plotting functions ~~~~~~~~~
 
+
 def px1_mapto_px2(img, transform, xlims, ylims, center=True):
     """
     Calculates a transformation from one image to another
@@ -172,12 +173,13 @@ def px1_mapto_px2(img, transform, xlims, ylims, center=True):
     if center:
         xold -= xold.mean()
         yold -= yold.mean()
-    xyold = np.array([[x,y] for x, y in itertools.product(xold, yold)])
-    xnew, ynew = transform.eval(xyold[:,0], xyold[:,1])
-    xynew = np.zeros([xnew.size,2])
+    xyold = np.array([[x, y] for x, y in itertools.product(xold, yold)])
+    xnew, ynew = transform.eval(xyold[:, 0], xyold[:, 1])
+    xynew = np.zeros([xnew.size, 2])
     xscale = img.shape[1] / np.diff(xlims)
     yscale = img.shape[0] / np.diff(ylims)
-    xynew[:,0] = xnew * xscale; xynew[:,1] = ynew * yscale
+    xynew[:, 0] = xnew * xscale
+    xynew[:, 1] = ynew * yscale
     return xynew
 
 
@@ -185,21 +187,23 @@ def transform_image(old_im, transform):
     # get the colors, old points:
     xlims = (-np.pi, np.pi)
     ylims = (-1., 1.)
-    transformed_points = px1_mapto_px2(old_im, transform, xlims, ylims,
-            center=True)
-    r, g, b = [old_im[:,:,i].T.ravel() for i in range(3)]
+    transformed_points = px1_mapto_px2(
+        old_im, transform, xlims, ylims, center=True)
+    r, g, b = [old_im[:, :, i].T.ravel() for i in range(3)]
     # get the new aspect ratio, image size
-    aspect_ratio = transformed_points[:,0].ptp() / transformed_points[:,1].ptp()
+    aspect_ratio = (
+        transformed_points[:, 0].ptp() / transformed_points[:, 1].ptp())
     new_shp = np.ceil(transformed_points.ptp(axis=0)[::-1])
     new_im = np.zeros(new_shp.astype('int').tolist() + [3])
     # Now get the x, y values for the new image:
     x0, y0 = [np.arange(t.min(), t.max() + 1, 1) for t in transformed_points.T]
-    xynew = np.array([[x, y] for x, y in itertools.product(x0, y0)],
-            dtype='int')
+    xynew = np.array(
+        [[x, y] for x, y in itertools.product(x0, y0)],
+        dtype='int')
     xynewim = xynew - xynew.min(axis=0)
     # raise ValueError
     for i, c in enumerate([r, g, b]):
-        new_im[xynewim[:,1], xynewim[:,0], i] = griddata(
+        new_im[xynewim[:, 1], xynewim[:, 0], i] = griddata(
             transformed_points, c, xynew, method='linear', fill_value=0)
     return new_im
 
@@ -207,7 +211,7 @@ def transform_image(old_im, transform):
 def get_maps(area_penalties):
     all_fws = []
     for ap in area_penalties:
-        fw = FittingWrapper(degree=(6,6), area_penalty=ap, nquadpts=75)
+        fw = FittingWrapper(degree=(6, 6), area_penalty=ap, nquadpts=75)
         print('Area penalty={}'.format(ap))
         fw.update_area_penalty(ap)
         p0 = fw.params if len(all_fws) == 0 else all_fws[-1].params
