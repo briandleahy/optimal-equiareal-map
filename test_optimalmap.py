@@ -104,21 +104,6 @@ class TestCoordinateTransform(unittest.TestCase):
         self.assertTrue(np.allclose(dxdy, numerical_dxdy, **MEDTOLS))
         self.assertTrue(np.allclose(dydy, numerical_dydy, **MEDTOLS))
 
-    def _test_evaluate_metric_returns_delta_when_coeffs_are_one(self):
-        ct = CoordinateTransform()
-        np.random.seed(72)
-        xold, yold = np.random.randn(2, 10)
-
-        # Checking that the test is correct; not part of test:
-        xnew, ynew = ct.eval(xold, yold)
-        assert np.allclose(xnew, xold, **TOLS)
-        assert np.allclose(ynew, yold, **TOLS)
-        # done checking
-
-        metric = ct.evaluate_metric(xold, yold)
-        correct = np.eye(2).reshape(2, 2, 1)
-        self.assertTrue(np.allclose(metric - correct, 0, **TOLS))
-
 
 class TestLambertQuadrature(unittest.TestCase):
     def test_setup(self):
