@@ -8,7 +8,7 @@ from transformimage import *
 def get_maps(area_penalties):
     all_fws = []
     for ap in area_penalties:
-        fw = FittingWrapper(degree=(6, 6), area_penalty=ap, nquadpts=75)
+        fw = MetricCostEvaluator(degree=(6, 6), area_penalty=ap, nquadpts=75)
         print('Area penalty={}'.format(ap))
         fw.update_area_penalty(ap)
         p0 = fw.params if len(all_fws) == 0 else all_fws[-1].params

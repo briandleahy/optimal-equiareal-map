@@ -96,45 +96,16 @@ class LambertProjection(object):
         # the legendre points aren't selected at y=+-1
 
 
-class FittingWrapper(object):
+class MetricCostEvaluator(object):
     def __init__(self, nquadpts=30, degree=(5, 5), area_penalty=1.):
-        # 1. the quadrature points
         self.quadobj = LambertCylindricalQuadrature(nxpts=nquadpts)
-        # 2. the original metric
-        self.g0 = LambertProjection(self.quadobj.pts)
-        # 3. the new function
+        self.lambert_projection = LambertProjection(self.quadobj.pts)
         self.transform = CoordinateTransform(degree=degree)
         self.area_penalty = area_penalty
 
-    def calculate_metric_residuals(self):
-        newmetric = self._calculate_metric()
-        # 4. The deviation from perfection:
-        deviation_from_isometry = newmetric - np.eye(2).reshape(1, 2, 2)
-        # 5. The equiareal penalties
-        deviation_from_equiareal = np.linalg.det(newmetric) - 1.
-        return deviation_from_isometry.ravel(), deviation_from_equiareal
-
-    def _calculate_metric(self):
-        # 1. The old metric
-        oldmetric = self.g0.metric
-        # 2. The transformation matrix dX/dx
-        xy = self.quadobj.pts
-        dXdx = np.zeros([xy.shape[0], 2, 2], dtype='float')
-        for a, b in itertools.product([0, 1], [0, 1]):
-            aij = self.transform.evaluate_derivative(
-                x_new='XY'[a], x_old='xy'[b])
-            dXdx[:, a, b] = polyval2d(xy[:, 0], xy[:, 1], aij)
-        # 3. The new metric
-        newmetric = np.einsum('...ij,...ik,...jl', oldmetric, dXdx, dXdx)
-        return newmetric
-
-    def update(self, params):
-        self.transform.update(params)
-
     def call(self, params):
-        # 1. update params:
+        """Returns a vector whose sum-of-squares is a cost"""
         self.update(params)
-        # 2. metric, residuals
         dg, da = self.calculate_metric_residuals()
         return np.hstack([dg, self.area_penalty * da])
 
@@ -144,6 +115,29 @@ class FittingWrapper(object):
     @property
     def params(self):
         return self.transform.params
+
+    def update(self, params):
+        self.transform.update(params)
+
+    def calculate_metric_residuals(self):
+        new_metric = self._calculate_metric()
+        deviation_from_isometry = new_metric - np.eye(2).reshape(1, 2, 2)
+        deviation_from_equiareal = np.linalg.det(new_metric) - 1.
+        return deviation_from_isometry.ravel(), deviation_from_equiareal
+
+    def _calculate_metric(self):
+        old_metric = self.lambert_projection.metric
+        # 2. The transformation matrix dX/dx
+        xy = self.quadobj.pts
+        dXdx = np.zeros([xy.shape[0], 2, 2], dtype='float')
+        for a, b in itertools.product([0, 1], [0, 1]):
+            aij = self.transform.evaluate_derivative(
+                x_new='XY'[a], x_old='xy'[b])
+            dXdx[:, a, b] = polyval2d(xy[:, 0], xy[:, 1], aij)
+        # 3. The new metric
+        new_metric = np.einsum('...ij,...ik,...jl', old_metric, dXdx, dXdx)
+        return new_metric
+
 
 
 def l2av(x):
