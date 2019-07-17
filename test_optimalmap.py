@@ -8,11 +8,7 @@ TOLS = {'atol': 1e-15, 'rtol': 1e-15}
 MEDTOLS = {'atol': 1e-6, 'rtol': 1e-6}
 SOFTTOLS = {'atol': 1e-3, 'rtol': 1e-3}
 
-# these are more system-level tests than TDD-style unit tests, since
-# I wrote this up before I read clean code :)
-
 # TODO:
-# Change names in old code to be a little better
 # Write up readme!
 
 
