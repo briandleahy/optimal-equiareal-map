@@ -38,12 +38,12 @@ class CoordinateTransform(object):
     def params(self):
         return self._coeffs[self._mask].copy()
 
-    def eval(self, x, y):
+    def evaluate(self, x, y):
         """New coordinates as a function of the old"""
         ans = [polyval2d(x, y, c) for c in self._coeffs]
         return ans
 
-    def eval_dXdx(self, x_new='X', x_old='x'):
+    def evaluate_derivative(self, x_new='X', x_old='x'):
         """returns the matrix that, when polyval'd, gives dX/dx where
         X is the new coordinate and x the old
 
@@ -81,7 +81,7 @@ class LambertCylindricalQuadrature(object):
         fxy = func(self._xypts)
         return np.sum(fxy * self._xywts)
 
-    def as_sumofsquares(self, func):
+    def integrate_as_sumofsquares(self, func):
         """Returns the integral as a set of pts such that \int f(x)^2 =
         sum (ans)^2 where ans is the output of this function"""
         fxy = func(self._xypts)
@@ -99,8 +99,8 @@ class LambertProjection(object):
         sin2theta = 1 - xypts[:, 1]**2
         self.metric[:, 0, 0] = 1.0 / sin2theta
         self.metric[:, 1, 1] = sin2theta
-        # -- we don't need to regularize with a +eps b/c the legendre
-        # points aren't selected at y=+-1
+        # -- we don't need to regularize sin(2theta) with a +eps b/c
+        # the legendre points aren't selected at y=+-1
 
 
 class FittingWrapper(object):
@@ -113,7 +113,7 @@ class FittingWrapper(object):
         self.transform = CoordinateTransform(degree=degree)
         self.area_penalty = area_penalty
 
-    def calc_metric_residuals(self):
+    def calculate_metric_residuals(self):
         newmetric = self._calculate_metric()
         # 4. The deviation from perfection:
         deviation_from_isometry = newmetric - np.eye(2).reshape(1, 2, 2)
@@ -128,7 +128,8 @@ class FittingWrapper(object):
         xy = self.quadobj.pts
         dXdx = np.zeros([xy.shape[0], 2, 2], dtype='float')
         for a, b in itertools.product([0, 1], [0, 1]):
-            aij = self.transform.eval_dXdx(x_new='XY'[a], x_old='xy'[b])
+            aij = self.transform.evaluate_derivative(
+                x_new='XY'[a], x_old='xy'[b])
             dXdx[:, a, b] = polyval2d(xy[:, 0], xy[:, 1], aij)
         # 3. The new metric
         newmetric = np.einsum('...ij,...ik,...jl', oldmetric, dXdx, dXdx)
@@ -141,7 +142,7 @@ class FittingWrapper(object):
         # 1. update params:
         self.update(params)
         # 2. metric, residuals
-        dg, da = self.calc_metric_residuals()
+        dg, da = self.calculate_metric_residuals()
         return np.hstack([dg, self.area_penalty * da])
 
     def update_area_penalty(self, new_penalty):
@@ -220,7 +221,7 @@ def get_maps(area_penalties):
         p0 = fw.params if len(all_fws) == 0 else all_fws[-1].params
         ans = leastsq(fw.call, p0)
         fw.update(ans[0])
-        dg, da = fw.calc_metric_residuals()
+        dg, da = fw.calculate_metric_residuals()
         print('Equiareal to \t{:.6f}'.format(l2av(da)))
         print('``Flat`` to \t{:.6f}'.format(l2av(dg)))
         all_fws.append(fw)

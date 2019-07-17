@@ -11,13 +11,17 @@ SOFTTOLS = {'atol': 1e-3, 'rtol': 1e-3}
 # these are more system-level tests than TDD-style unit tests, since
 # I wrote this up before I read clean code :)
 
+# TODO:
+# Change names in old code to be a little better
+# Write up readme!
+
 class TestCoordinateTransform(unittest.TestCase):
     def test_transformation_intializes_to_identity(self):
         np.random.seed(72)
         ct = CoordinateTransform()
         x = np.random.randn(21)
         y = np.random.randn(x.size)
-        new_x, new_y = ct.eval(x, y)
+        new_x, new_y = ct.evaluate(x, y)
         self.assertTrue(np.allclose(new_x, x, **TOLS))
         self.assertTrue(np.allclose(new_y, y, **TOLS))
 
@@ -47,26 +51,26 @@ class TestCoordinateTransform(unittest.TestCase):
 
         params = ct.params
         ct.update(np.random.randn(*params.shape))
-        new_x, new_y = ct.eval(x, y)
+        new_x, new_y = ct.evaluate(x, y)
 
         self.assertFalse(np.allclose(new_x, x, **SOFTTOLS))
         self.assertFalse(np.allclose(new_y, y, **SOFTTOLS))
 
-    def test_eval_dXdx_when_identity_transformation(self):
+    def test_evaluate_derivative_when_identity_transformation(self):
         ct = CoordinateTransform()
         np.random.seed(72)
         xold, yold = np.random.randn(2, 10)
 
         # Checking that the test is correct; not part of test:
-        xnew, ynew = ct.eval(xold, yold)
+        xnew, ynew = ct.evaluate(xold, yold)
         assert np.allclose(xnew, xold, **TOLS)
         assert np.allclose(ynew, yold, **TOLS)
         # done checking
 
-        dxdx_matrix = ct.eval_dXdx('X', 'x')
-        dydx_matrix = ct.eval_dXdx('Y', 'x')
-        dxdy_matrix = ct.eval_dXdx('X', 'y')
-        dydy_matrix = ct.eval_dXdx('Y', 'y')
+        dxdx_matrix = ct.evaluate_derivative('X', 'x')
+        dydx_matrix = ct.evaluate_derivative('Y', 'x')
+        dxdy_matrix = ct.evaluate_derivative('X', 'y')
+        dydy_matrix = ct.evaluate_derivative('Y', 'y')
 
         dxdx = np.polynomial.polynomial.polyval2d(xold, yold, dxdx_matrix)
         dydx = np.polynomial.polynomial.polyval2d(xold, yold, dydx_matrix)
@@ -78,26 +82,30 @@ class TestCoordinateTransform(unittest.TestCase):
         self.assertTrue(np.allclose(dxdy, 0, **TOLS))
         self.assertTrue(np.allclose(dydy, 1, **TOLS))
 
-    def test_eval_dXdx_via_finite_difference(self):
+    def test_evaluate_derivative_via_finite_difference(self):
         ct = CoordinateTransform()
         np.random.seed(72)
         ct.update(np.random.randn(ct.params.size))
         x, y = np.random.randn(2, 10)
         dx = 1e-7
 
-        dxdx_matrix = ct.eval_dXdx('X', 'x')
-        dydx_matrix = ct.eval_dXdx('Y', 'x')
-        dxdy_matrix = ct.eval_dXdx('X', 'y')
-        dydy_matrix = ct.eval_dXdx('Y', 'y')
+        dxdx_matrix = ct.evaluate_derivative('X', 'x')
+        dydx_matrix = ct.evaluate_derivative('Y', 'x')
+        dxdy_matrix = ct.evaluate_derivative('X', 'y')
+        dydy_matrix = ct.evaluate_derivative('Y', 'y')
         dxdx = np.polynomial.polynomial.polyval2d(x, y, dxdx_matrix)
         dydx = np.polynomial.polynomial.polyval2d(x, y, dydx_matrix)
         dxdy = np.polynomial.polynomial.polyval2d(x, y, dxdy_matrix)
         dydy = np.polynomial.polynomial.polyval2d(x, y, dydy_matrix)
 
-        numerical_dxdx = (ct.eval(x + dx, y)[0] - ct.eval(x, y)[0]) / dx
-        numerical_dxdy = (ct.eval(x, y + dx)[0] - ct.eval(x, y)[0]) / dx
-        numerical_dydx = (ct.eval(x + dx, y)[1] - ct.eval(x, y)[1]) / dx
-        numerical_dydy = (ct.eval(x, y + dx)[1] - ct.eval(x, y)[1]) / dx
+        numerical_dxdx = (
+            (ct.evaluate(x + dx, y)[0] - ct.evaluate(x, y)[0]) / dx)
+        numerical_dxdy = (
+            (ct.evaluate(x, y + dx)[0] - ct.evaluate(x, y)[0]) / dx)
+        numerical_dydx = (
+            (ct.evaluate(x + dx, y)[1] - ct.evaluate(x, y)[1]) / dx)
+        numerical_dydy = (
+            (ct.evaluate(x, y + dx)[1] - ct.evaluate(x, y)[1]) / dx)
 
         self.assertTrue(np.allclose(dxdx, numerical_dxdx, **MEDTOLS))
         self.assertTrue(np.allclose(dydx, numerical_dydx, **MEDTOLS))
@@ -139,17 +147,17 @@ class TestLambertQuadrature(unittest.TestCase):
 
         self.assertTrue(np.isclose(should_be_zero, 0, **TOLS))
 
-    def test_as_sumofsquares_returns_correct_shape(self):
+    def test_integrate_as_sumofsquares_returns_correct_shape(self):
         quad = LambertCylindricalQuadrature()
         ones = lambda x: np.ones(x.shape[0])
-        as_sumofsquares = quad.as_sumofsquares(ones)
+        as_sumofsquares = quad.integrate_as_sumofsquares(ones)
         pts = quad.pts
         self.assertTrue(as_sumofsquares.size == pts.shape[0])
 
-    def test_as_sumofsquares_on_constant(self):
+    def test_integrate_as_sumofsquares_on_constant(self):
         quad = LambertCylindricalQuadrature()
         ones = lambda x: np.ones(x.shape[0])
-        as_sumofsquares = quad.as_sumofsquares(ones)
+        as_sumofsquares = quad.integrate_as_sumofsquares(ones)
         surface_area = np.sum(as_sumofsquares**2)
 
         self.assertTrue(np.isclose(surface_area, 4 * np.pi, **TOLS))
@@ -232,6 +240,7 @@ class TestMisc(unittest.TestCase):
     def test_l2av_with_twos(self):
         t = np.ones(10) * 2
         self.assertTrue(np.isclose(l2av(t), 4.0, **TOLS))
+
 
 if __name__ == '__main__':
     unittest.main()
