@@ -19,8 +19,8 @@ def get_maps(area_penalties, quiet=False):
         dg, da = cost_evaluator.calculate_metric_residuals()
         if not quiet:
             print('Area penalty={}'.format(area_penalty))
-            print('Equiareal to \t{:.6f}'.format(l2av(da)))
-            print('``Flat`` to \t{:.6f}'.format(l2av(dg)))
+            print('\tEquiareal to \t{:.6f}'.format(l2av(da)))
+            print('\t``Flat`` to \t{:.6f}'.format(l2av(dg)))
         all_cost_evaluators.append(cost_evaluator)
     return all_cost_evaluators
 
@@ -31,7 +31,8 @@ def main():
 
     old_im = plt.imread('./lambert-cropped.png')
     # old_im = plt.imread('./lambert-cropped-small.png')
-    new_ims = [transform_image(old_im, fw.transform) for fw in all_fws]
+    new_ims = [transform_image(old_im, cost_evaluator.transform)
+               for cost_evaluator in all_cost_evaluators]
     for ap, ni in zip(area_penalties, new_ims):
         plt.imsave('./optimal-equiareal-area_penalty={}.png'.format(ap), ni)
 
