@@ -1,3 +1,7 @@
+"""
+TODO :
+Figure out why it's cropped at the poles
+"""
 import itertools
 import numpy as np
 from scipy.interpolate import griddata
@@ -54,5 +58,4 @@ def transform_image(old_im, transform):
         new_im[xynewim[:, 1], xynewim[:, 0], i] = griddata(
             transformed_points, c, xynew, method='linear', fill_value=0)
     return new_im
-
 

@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from optimal_map import *
+from optimalmap import *
 
 TOLS = {'atol': 1e-15, 'rtol': 1e-15}
 MEDTOLS = {'atol': 1e-6, 'rtol': 1e-6}
@@ -14,6 +14,7 @@ SOFTTOLS = {'atol': 1e-3, 'rtol': 1e-3}
 # TODO:
 # Change names in old code to be a little better
 # Write up readme!
+
 
 class TestCoordinateTransform(unittest.TestCase):
     def test_transformation_intializes_to_identity(self):

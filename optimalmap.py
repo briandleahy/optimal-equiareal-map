@@ -1,15 +1,9 @@
-"""
-TODO :
-Figure out why it's cropped at the poles
-"""
 import itertools
+
 import numpy as np
-from scipy.optimize import leastsq
-import matplotlib.pyplot as plt
+
 
 polyval2d = np.polynomial.polynomial.polyval2d  # shorter alias
-
-# ~~~~~~~ Fitting functions ~~~~~~~~~~~~~
 
 
 class CoordinateTransform(object):

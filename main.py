@@ -1,8 +1,9 @@
+from scipy.optimize import leastsq
 import matplotlib.pyplot as plt
-
 
 from optimalmap import *
 from transformimage import *
+
 
 def get_maps(area_penalties):
     all_fws = []
