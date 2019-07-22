@@ -7,6 +7,30 @@ import numpy as np
 from scipy.interpolate import griddata
 
 
+class ImageTransformer(object):
+    def __init__(self, image, transformation):
+        self.image = image
+        self.transformation = transformation
+
+    def transform_image(self):
+        pass
+
+    def _get_transformed_pixel_locations(self):
+        # +- pi, +- 1 are hard-coded for the Lambert projection
+        xold_1d = np.reshape(
+            np.linspace(-np.pi, np.pi, self.image.shape[1]),
+            (-1, 1))
+        yold_1d = np.reshape(
+            np.linspace(-1,     1,     self.image.shape[0]),
+            (1, -1))
+        xold, yold = np.meshgrid(xold_1d, yold_1d, indexing='ij')
+        xnew, ynew = self.transformation.evaluate(xold.ravel(), yold.ravel())
+
+        xscale = self.image.shape[1] / xold_1d.ptp()
+        yscale = self.image.shape[0] / yold_1d.ptp()
+        return np.transpose([xnew * xscale, ynew * yscale])
+
+
 def px1_mapto_px2(img, transform, xlims, ylims, center=True):
     """
     Calculates a transformation from one image to another
