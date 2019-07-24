@@ -13,22 +13,28 @@ class ImageTransformer(object):
         self.transformation = transformation
 
     def transform_image(self):
+        transformed_points = self._transform_pixel_locations()
+        new_image_shape = self._get_bounding_box_size_for(transformed_points)
+        new_image = np.zeros(new_image_shape + (3,))
         pass
 
-    def _get_transformed_pixel_locations(self):
+    def _transform_pixel_locations(self):
         # +- pi, +- 1 are hard-coded for the Lambert projection
-        xold_1d = np.reshape(
-            np.linspace(-np.pi, np.pi, self.image.shape[1]),
-            (-1, 1))
-        yold_1d = np.reshape(
-            np.linspace(-1,     1,     self.image.shape[0]),
-            (1, -1))
-        xold, yold = np.meshgrid(xold_1d, yold_1d, indexing='ij')
+        xold_1d = np.linspace(-np.pi, np.pi, self.image.shape[1])
+        yold_1d = np.linspace(-1,     1,     self.image.shape[0])
+        xold, yold = np.meshgrid(
+            xold_1d.reshape(-1, 1), yold_1d.reshape(-1, 1), indexing='ij')
         xnew, ynew = self.transformation.evaluate(xold.ravel(), yold.ravel())
 
         xscale = self.image.shape[1] / xold_1d.ptp()
         yscale = self.image.shape[0] / yold_1d.ptp()
         return np.transpose([xnew * xscale, ynew * yscale])
+
+    @classmethod
+    def _get_bounding_box_size_for(cls, transformed_points):
+        bbox_shape = transformed_points.ptp(axis=0)
+        bbox_int = np.ceil(bbox_shape).astype('int')
+        return tuple(bbox_int[::-1])  # FIXME x vs y
 
 
 def px1_mapto_px2(img, transform, xlims, ylims, center=True):
@@ -65,10 +71,7 @@ def transform_image(old_im, transform):
     ylims = (-1., 1.)
     transformed_points = px1_mapto_px2(
         old_im, transform, xlims, ylims, center=True)
-    r, g, b = [old_im[:, :, i].T.ravel() for i in range(3)]
     # get the new aspect ratio, image size
-    aspect_ratio = (
-        transformed_points[:, 0].ptp() / transformed_points[:, 1].ptp())
     new_shp = np.ceil(transformed_points.ptp(axis=0)[::-1])
     new_im = np.zeros(new_shp.astype('int').tolist() + [3])
     # Now get the x, y values for the new image:
@@ -78,6 +81,7 @@ def transform_image(old_im, transform):
         dtype='int')
     xynewim = xynew - xynew.min(axis=0)
     # raise ValueError
+    r, g, b = [old_im[:, :, i].T.ravel() for i in range(3)]
     for i, c in enumerate([r, g, b]):
         new_im[xynewim[:, 1], xynewim[:, 0], i] = griddata(
             transformed_points, c, xynew, method='linear', fill_value=0)
