@@ -1,6 +1,9 @@
 """
 TODO :
 Figure out why it's cropped at the poles
+
+Actually just redo this. Transform the pixels from the old image to the new
+image, update the colors, then use that to create an interpolator.
 """
 import itertools
 import numpy as np
@@ -16,19 +19,19 @@ class ImageTransformer(object):
         transformed_points = self._transform_pixel_locations()
         new_image_shape = self._get_bounding_box_size_for(transformed_points)
         new_image = np.zeros(new_image_shape + (3,))
-        pass
+
+        # Now pack each set of r, g, b value into the new image, using
+        # griddata and the new coordinates of the image.
 
     def _transform_pixel_locations(self):
         # +- pi, +- 1 are hard-coded for the Lambert projection
-        xold_1d = np.linspace(-np.pi, np.pi, self.image.shape[1])
-        yold_1d = np.linspace(-1,     1,     self.image.shape[0])
-        xold, yold = np.meshgrid(
-            xold_1d.reshape(-1, 1), yold_1d.reshape(-1, 1), indexing='ij')
-        xnew, ynew = self.transformation.evaluate(xold.ravel(), yold.ravel())
+        xold = np.linspace(-np.pi, np.pi, self.image.shape[1]).reshape(-1, 1)
+        yold = np.linspace(-1,     1,     self.image.shape[0]).reshape(1, -1)
+        xnew, ynew = self.transformation.evaluate(xold, yold)
 
-        xscale = self.image.shape[1] / xold_1d.ptp()
-        yscale = self.image.shape[0] / yold_1d.ptp()
-        return np.transpose([xnew * xscale, ynew * yscale])
+        xscale = self.image.shape[1] / xold.ptp()
+        yscale = self.image.shape[0] / yold.ptp()
+        return np.transpose([xnew.ravel() * xscale, ynew.ravel() * yscale])
 
     @classmethod
     def _get_bounding_box_size_for(cls, transformed_points):
@@ -81,6 +84,8 @@ def transform_image(old_im, transform):
         dtype='int')
     xynewim = xynew - xynew.min(axis=0)
     # raise ValueError
+    # Pack each set of r, g, b value into the new image, using griddata
+    # and the new coordinates of the image.
     r, g, b = [old_im[:, :, i].T.ravel() for i in range(3)]
     for i, c in enumerate([r, g, b]):
         new_im[xynewim[:, 1], xynewim[:, 0], i] = griddata(
