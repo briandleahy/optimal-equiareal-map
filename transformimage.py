@@ -20,24 +20,45 @@ class ImageTransformer(object):
         new_image_shape = self._get_bounding_box_size_for(transformed_points)
         new_image = np.zeros(new_image_shape + (3,))
 
-        # Now pack each set of r, g, b value into the new image, using
-        # griddata and the new coordinates of the image.
+        # 1. Assign the points at
+        tx, ty = np.round(transformed_points).astype('int')
+        for i in range(3):
+            new_image[tx, ty, i] = self.image[..., i]
+        not_filled_in = np.ones(new_image_shape, dtype='bool')
+        not_filled_in[tx, ty] = False
+
+        # 2. Do a quick grey closing of each channel:
+        for i in range(3):
+            new_image[..., i] = grey_closing(new_image[..., i], size=3)
+
+        # 3. Finally re-assign the values that we know:
+        for i in range(3):
+            new_image[tx, ty, i] = self.image[..., i]
+        return new_image
 
     def _transform_pixel_locations(self):
         # +- pi, +- 1 are hard-coded for the Lambert projection
-        xold = np.linspace(-np.pi, np.pi, self.image.shape[1]).reshape(-1, 1)
-        yold = np.linspace(-1,     1,     self.image.shape[0]).reshape(1, -1)
-        xnew, ynew = self.transformation.evaluate(xold, yold)
+        xold = np.linspace(-np.pi, np.pi, self.image.shape[1]).reshape(1, -1)
+        yold = np.linspace(-1,     1,     self.image.shape[0]).reshape(-1, 1)
+        transformed_x, transformed_y = self.transformation.evaluate(xold, yold)
 
         xscale = self.image.shape[1] / xold.ptp()
         yscale = self.image.shape[0] / yold.ptp()
-        return np.transpose([xnew.ravel() * xscale, ynew.ravel() * yscale])
+
+        coordinates_and_scales = (
+            [transformed_x, xscale],
+            [transformed_y, yscale],
+            )
+        for coord, scale in coordinates_and_scales:
+            coord -= coord.min()
+            coord *= scale
+        return transformed_x, transformed_y
 
     @classmethod
     def _get_bounding_box_size_for(cls, transformed_points):
-        bbox_shape = transformed_points.ptp(axis=0)
+        bbox_shape = [t.ptp() for t in transformed_points]
         bbox_int = np.ceil(bbox_shape).astype('int')
-        return tuple(bbox_int[::-1])  # FIXME x vs y
+        return tuple(bbox_int)
 
 
 def px1_mapto_px2(img, transform, xlims, ylims, center=True):
