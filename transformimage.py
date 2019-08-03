@@ -54,11 +54,11 @@ class ImageTransformer(object):
         new_image = np.zeros(new_image_shape + (3,))
 
         # 1. Assign the points at
-        tx, ty = np.round(transformed_points).astype('int')
+        t0, t1 = np.round(transformed_points).astype('int')
         for i in range(3):
-            new_image[tx, ty, i] = self.image[..., i]
+            new_image[t0, t1, i] = self.image[..., i]
         filled_in = np.zeros(new_image_shape, dtype='bool')
-        filled_in[tx, ty] = True
+        filled_in[t0, t1] = True
 
         new_image = self._fill_in_holes(new_image, filled_in)
         new_image = self._zero_out_edges(new_image, filled_in)
@@ -66,12 +66,15 @@ class ImageTransformer(object):
 
     def _transform_pixel_locations(self):
         # +- pi, +- 1 are hard-coded for the Lambert projection
-        xold = np.linspace(-np.pi, np.pi, self.image.shape[1]).reshape(1, -1)
-        yold = np.linspace(-1,     1,     self.image.shape[0]).reshape(-1, 1)
+        # We take the pixel locations to be at the left edge, which
+        # means we need to pad +1 and take[:-1]
+        ny, nx = self.image.shape[:2]
+        xold = np.linspace(-np.pi, np.pi, nx + 1)[:-1].reshape(1, -1)
+        yold = np.linspace(-1,     1,     ny + 1)[:-1].reshape(-1, 1)
         transformed_x, transformed_y = self.transformation.evaluate(xold, yold)
 
-        xscale = self.image.shape[1] / xold.ptp()
-        yscale = self.image.shape[0] / yold.ptp()
+        xscale = self.image.shape[1] / (2 * np.pi)
+        yscale = self.image.shape[0] / 2
 
         coordinates_and_scales = (
             [transformed_x, xscale],
@@ -80,7 +83,7 @@ class ImageTransformer(object):
         for coord, scale in coordinates_and_scales:
             coord -= coord.min()
             coord *= scale
-        return transformed_x, transformed_y
+        return transformed_y, transformed_x
 
     @classmethod
     def _fill_in_holes(cls, new_image, filled_in):

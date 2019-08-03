@@ -116,6 +116,12 @@ class TestImageTransformer(unittest.TestCase):
         v2 = transformer.transform_image()
         self.assertTrue(np.all(v1 == v2))
 
+    def test_identity_transformation_gives_identity(self):
+        image = np.random.rand(22, 68, 3)
+        transform = CoordinateTransform(degree=(1, 1))
+        check = transform_image(image, transform)
+        self.assertEqual(image.shape, check.shape)
+
 
 def mimic_transformed_points():
     points = np.random.rand(2, 10) * 100
