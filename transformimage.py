@@ -1,17 +1,50 @@
 """
-TODO :
-Figure out why it's cropped at the poles
+An alternative way to do this is to find the inverse of the transformation
+directly. For the 1D case, we can do it as follows.
 
-Actually just redo this. Transform the pixels from the old image to the new
-image, update the colors, then use that to create an interpolator.
+We write the inverse function as a sum of basis functions:
+
+ .. math ::
+
+    f^{-1}(xz) = \\sum_k a_k \\phi_k(x)
+
+Then we know that
+
+  .. math ::
+
+    f^{-1}(f(x)) = x
+    \\sum_k a_k \\phi_k(f(x)) - x = 0
+
+Which means that we can write this as a linear least squares problem:
+  .. math ::
+
+    \\sum_i (\\sum_k a_k \\phi_k(f(x_i)) - x_i)^2 = 0
+which is a linear least-squares problem for a_k.
+
+I'm a little worried about points which lack an inverse though (i.e. points
+whose inverse is outside the domain of the map), so I'll do it later.
 """
 import itertools
+
 import numpy as np
 from scipy.interpolate import griddata
+from scipy.signal import convolve2d
+from skimage.morphology import remove_small_holes
+
+
+def transform_image(old_im, transform):
+    transformer = ImageTransformer(old_im, transform)
+    return transformer.transform_image()
 
 
 class ImageTransformer(object):
     def __init__(self, image, transformation):
+        if image.shape[1] < 2.9 * image.shape[0]:
+            msg = """This assumes a Lambert projection, with the
+                     x-direction along image.shape[1]. It seems that
+                     the image does not meet this criterion. Try
+                     transposing the image."""
+            raise ValueError(msg)
         self.image = image
         self.transformation = transformation
 
@@ -24,16 +57,11 @@ class ImageTransformer(object):
         tx, ty = np.round(transformed_points).astype('int')
         for i in range(3):
             new_image[tx, ty, i] = self.image[..., i]
-        not_filled_in = np.ones(new_image_shape, dtype='bool')
-        not_filled_in[tx, ty] = False
+        filled_in = np.zeros(new_image_shape, dtype='bool')
+        filled_in[tx, ty] = True
 
-        # 2. Do a quick grey closing of each channel:
-        for i in range(3):
-            new_image[..., i] = grey_closing(new_image[..., i], size=3)
-
-        # 3. Finally re-assign the values that we know:
-        for i in range(3):
-            new_image[tx, ty, i] = self.image[..., i]
+        new_image = self._fill_in_holes(new_image, filled_in)
+        new_image = self._zero_out_edges(new_image, filled_in)
         return new_image
 
     def _transform_pixel_locations(self):
@@ -55,61 +83,49 @@ class ImageTransformer(object):
         return transformed_x, transformed_y
 
     @classmethod
+    def _fill_in_holes(cls, new_image, filled_in):
+        # We do a Barnes-like interpolant, as follows:
+        # 1. Make a kernel
+        kernel_width = max(7, int(0.03 * max(new_image.shape)))
+        t_kernel = np.linspace(-7, 7, kernel_width)
+        x_kernel = t_kernel.reshape(-1, 1)
+        y_kernel = t_kernel.reshape(1, -1)
+        kernel = np.exp(-0.5*(x_kernel**2 + y_kernel**2))
+        kernel /= kernel.sum()
+        # 2. get a smoothed version of the image:
+        smoothed = new_image.copy()
+        for i in range(3):
+            smoothed[..., i] = convolve2d(
+                new_image[..., i], kernel, mode='same')
+        # 3. Get a smoothed version of the mask:
+        mask_smoothed = convolve2d(
+            filled_in.astype('float'), kernel, mode='same')
+        # 4. re-scale the smoothed image by the smoothed mask,
+        #    so we don't have dips in the brightness at the gaps:
+        for i in range(3):
+            smoothed[..., i] /= (mask_smoothed + 1e-10)
+        # 4. Finally re-assign the values that we know:
+        for i in range(3):
+            smoothed[filled_in, i] = new_image[filled_in, i]
+        return smoothed
+
+    @classmethod
+    def _zero_out_edges(cls, new_image, filled_in):
+        # 1. Pad out ``filled_in`` so we dont remove any edges, which
+        #    aren't holes. It also means we can get a robust shape for
+        #    internal holes:
+        pad = 1
+        padded = np.pad(filled_in, pad, 'constant', constant_values=False)
+        hole_cutoff_size = 2 * np.sum(filled_in.shape)  # the perimeter
+        # 2, 3. Removing holes in mask and image:
+        holes_removed = ~remove_small_holes(padded, hole_cutoff_size)
+        zero_these_out = holes_removed[pad:-pad, pad:-pad]  # unpadding
+        new_image[zero_these_out] = 0.
+        return new_image
+
+    @classmethod
     def _get_bounding_box_size_for(cls, transformed_points):
-        bbox_shape = [t.ptp() for t in transformed_points]
+        bbox_shape = [t.ptp() + 1 for t in transformed_points]
         bbox_int = np.ceil(bbox_shape).astype('int')
         return tuple(bbox_int)
-
-
-def px1_mapto_px2(img, transform, xlims, ylims, center=True):
-    """
-    Calculates a transformation from one image to another
-
-    img : the image to transform to
-    transform : the transofrmation
-    px_dist_ratio : functions which take image coordinates to the
-        transformation's coordinates
-
-    This won't work since the function needs to know about the image
-    size....... you need a function that gets the transformed image
-    coordinates.
-    """
-    yold, xold = [np.linspace(*lims, s) for lims, s in zip(
-            [ylims, xlims], img.shape[:2])]
-    if center:
-        xold -= xold.mean()
-        yold -= yold.mean()
-    xyold = np.array([[x, y] for x, y in itertools.product(xold, yold)])
-    xnew, ynew = transform.evaluate(xyold[:, 0], xyold[:, 1])
-    xynew = np.zeros([xnew.size, 2])
-    xscale = img.shape[1] / np.diff(xlims)
-    yscale = img.shape[0] / np.diff(ylims)
-    xynew[:, 0] = xnew * xscale
-    xynew[:, 1] = ynew * yscale
-    return xynew
-
-
-def transform_image(old_im, transform):
-    # get the colors, old points:
-    xlims = (-np.pi, np.pi)
-    ylims = (-1., 1.)
-    transformed_points = px1_mapto_px2(
-        old_im, transform, xlims, ylims, center=True)
-    # get the new aspect ratio, image size
-    new_shp = np.ceil(transformed_points.ptp(axis=0)[::-1])
-    new_im = np.zeros(new_shp.astype('int').tolist() + [3])
-    # Now get the x, y values for the new image:
-    x0, y0 = [np.arange(t.min(), t.max() + 1, 1) for t in transformed_points.T]
-    xynew = np.array(
-        [[x, y] for x, y in itertools.product(x0, y0)],
-        dtype='int')
-    xynewim = xynew - xynew.min(axis=0)
-    # raise ValueError
-    # Pack each set of r, g, b value into the new image, using griddata
-    # and the new coordinates of the image.
-    r, g, b = [old_im[:, :, i].T.ravel() for i in range(3)]
-    for i, c in enumerate([r, g, b]):
-        new_im[xynewim[:, 1], xynewim[:, 0], i] = griddata(
-            transformed_points, c, xynew, method='linear', fill_value=0)
-    return new_im
 
