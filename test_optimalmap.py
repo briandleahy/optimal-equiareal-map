@@ -8,9 +8,6 @@ TOLS = {'atol': 1e-15, 'rtol': 1e-15}
 MEDTOLS = {'atol': 1e-6, 'rtol': 1e-6}
 SOFTTOLS = {'atol': 1e-3, 'rtol': 1e-3}
 
-# TODO:
-# Write up readme!
-
 
 class TestCoordinateTransform(unittest.TestCase):
     def test_transformation_intializes_to_identity(self):
@@ -22,23 +19,35 @@ class TestCoordinateTransform(unittest.TestCase):
         self.assertTrue(np.allclose(new_x, x, **TOLS))
         self.assertTrue(np.allclose(new_y, y, **TOLS))
 
+    def test_coeffs_are_correct_shape(self):
+        np.random.seed(72)
+        degree = (5, 6)
+        correct_shape = tuple([d + 1 for d in degree])
+        ct = CoordinateTransform(degree=degree)
+        self.assertEqual(ct._coeffs[0].shape, correct_shape)
+        self.assertEqual(ct._coeffs[1].shape, correct_shape)
+
     def test_update_always_keeps_dc_term_0(self):
         np.random.seed(72)
         ct = CoordinateTransform()
-        self.assertTrue(np.all(ct._coeffs[0, 0, :] == 0))
+        self.assertTrue(np.all(ct._coeffs[:, 0, 0] == 0))
         params = ct.params
         ct.update(np.random.randn(*params.shape))
-        self.assertTrue(np.all(ct._coeffs[0, 0, :] == 0))
+        self.assertTrue(np.all(ct._coeffs[:, 0, 0] == 0))
 
     def test_params_returns_copy(self):
         np.random.seed(72)
         ct = CoordinateTransform()
-        self.assertTrue(np.all(ct._coeffs[0, 0, :] == 0))
         ct.update(np.random.randn(*ct.params.shape))
         p1 = ct.params
         p2 = ct.params
         self.assertTrue(np.all(p1 == p2))
         self.assertTrue(p1 is not p2)
+
+    def test_params_are_correct_size(self):
+        degree = (6, 7)
+        ct = CoordinateTransform(degree=degree)
+        self.assertEqual(ct.params.size, ct._coeffs.size - 2)
 
     def test_update_changes_the_evaluated_coordinates(self):
         np.random.seed(72)

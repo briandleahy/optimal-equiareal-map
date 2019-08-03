@@ -19,10 +19,10 @@ class CoordinateTransform(object):
         shp = [2] + (np.array(degree)+1).tolist()
         self._coeffs = np.zeros(shp, dtype='float')  # 2 for x,y
         self._mask = np.ones(shp, dtype='bool')
-        self._mask[0, 0] = False
+        self._mask[:, 0, 0] = False
         # Then we want to start at a reasonable param value (X=x etc)
         self._coeffs[0, 1, 0] = 1
-        self._coeffs[1, 0, 1] = 1  # FIXME check!!!
+        self._coeffs[1, 0, 1] = 1
 
     def update(self, params):
         self._coeffs[self._mask] = params.copy()
