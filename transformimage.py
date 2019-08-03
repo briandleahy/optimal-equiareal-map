@@ -28,8 +28,9 @@ import itertools
 
 import numpy as np
 from scipy.interpolate import griddata
-from scipy.signal import convolve2d
-from skimage.morphology import remove_small_holes
+from scipy.signal import fftconvolve
+from scipy.ndimage import binary_closing
+from skimage.morphology import remove_small_holes, disk
 
 
 def transform_image(old_im, transform):
@@ -98,10 +99,10 @@ class ImageTransformer(object):
         # 2. get a smoothed version of the image:
         smoothed = new_image.copy()
         for i in range(3):
-            smoothed[..., i] = convolve2d(
+            smoothed[..., i] = fftconvolve(
                 new_image[..., i], kernel, mode='same')
         # 3. Get a smoothed version of the mask:
-        mask_smoothed = convolve2d(
+        mask_smoothed = fftconvolve(
             filled_in.astype('float'), kernel, mode='same')
         # 4. re-scale the smoothed image by the smoothed mask,
         #    so we don't have dips in the brightness at the gaps:
@@ -117,12 +118,17 @@ class ImageTransformer(object):
         # 1. Pad out ``filled_in`` so we dont remove any edges, which
         #    aren't holes. It also means we can get a robust shape for
         #    internal holes:
-        pad = 1
+        pad = max(1, int(0.02 * max(new_image.shape)) + 1)
         padded = np.pad(filled_in, pad, 'constant', constant_values=False)
         hole_cutoff_size = 2 * np.sum(filled_in.shape)  # the perimeter
-        # 2, 3. Removing holes in mask and image:
-        holes_removed = ~remove_small_holes(padded, hole_cutoff_size)
-        zero_these_out = holes_removed[pad:-pad, pad:-pad]  # unpadding
+        # 2, Removing holes in mask and image:
+        center = remove_small_holes(padded, hole_cutoff_size)
+        # 3. Remove any stripes, which arise from stretching the image
+        #    in 1D and skipping an entire row of pixels:
+        circle = disk(pad)
+        edges = ~binary_closing(center, circle)
+        # 4. Unpad and zero out image
+        zero_these_out = edges[pad:-pad, pad:-pad]  # unpadding
         new_image[zero_these_out] = 0.
         return new_image
 
