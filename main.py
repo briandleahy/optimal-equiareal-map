@@ -25,15 +25,20 @@ def get_maps(area_penalties, quiet=False):
     return all_cost_evaluators
 
 
-def main():
-    area_penalties = [0.5, 30., 2e2]
+def calculate_images_for(area_penalties):
     all_cost_evaluators = get_maps(area_penalties)
 
     old_im = plt.imread('./lambert-cropped.png')
     # old_im = plt.imread('./lambert-cropped-small.png')
     new_ims = [transform_image(old_im, cost_evaluator.transform)
                for cost_evaluator in all_cost_evaluators]
-    for ap, ni in zip(area_penalties, new_ims):
+    return new_ims
+
+
+def main():
+    area_penalties = [0.5, 30., 2e2]
+    new_images = calculate_images_for(area_penalties)
+    for ap, ni in zip(area_penalties, new_images):
         plt.imsave('./optimal-equiareal-area_penalty={}.png'.format(ap), ni)
 
 
