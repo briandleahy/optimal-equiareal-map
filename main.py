@@ -5,11 +5,15 @@ from optimalmap import *
 from transformimage import *
 
 
+DEGREE = 6
+
+
 def get_maps(area_penalties, quiet=False):
     all_cost_evaluators = []
     for area_penalty in area_penalties:
         cost_evaluator = MetricCostEvaluator(
-            degree=(6, 6), area_penalty=area_penalty, nquadpts=75)
+            degree=(DEGREE, DEGREE), area_penalty=area_penalty,
+            nquadpts=12 * DEGREE)
         cost_evaluator.update_area_penalty(area_penalty)
         p0 = (
             cost_evaluator.params if len(all_cost_evaluators) == 0
@@ -25,21 +29,17 @@ def get_maps(area_penalties, quiet=False):
     return all_cost_evaluators
 
 
-def calculate_images_for(area_penalties):
-    all_cost_evaluators = get_maps(area_penalties)
-
-    old_im = plt.imread('./lambert-cropped.png')
-    # old_im = plt.imread('./lambert-cropped-small.png')
-    new_ims = [transform_image(old_im, cost_evaluator.transform)
-               for cost_evaluator in all_cost_evaluators]
-    return new_ims
-
-
 def main():
-    area_penalties = [0.5, 30., 2e2]
-    new_images = calculate_images_for(area_penalties)
-    for ap, ni in zip(area_penalties, new_images):
-        plt.imsave('./optimal-equiareal-area_penalty={}.png'.format(ap), ni)
+    area_penalties = [1, 30., 2e2]
+    all_cost_evaluators = get_maps(area_penalties)
+    transformations = [c.transform for c in all_cost_evaluators]
+    old_image = plt.imread('./lambert-cropped.png')
+    for penalty, transform in zip(area_penalties, transformations):
+        basename = './params-degree={}-penalty={}'.format(
+            DEGREE, round(penalty))
+        np.savetxt(basename + '.csv', transform.params, delimiter=',')
+        new_image = transform_image(old_image, transform)
+        plt.imsave(basename + '.png', new_image)
 
 
 if __name__ == '__main__':
