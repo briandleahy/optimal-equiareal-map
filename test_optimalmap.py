@@ -27,6 +27,13 @@ class TestCoordinateTransform(unittest.TestCase):
         self.assertEqual(ct._coeffs[0].shape, correct_shape)
         self.assertEqual(ct._coeffs[1].shape, correct_shape)
 
+    def test_create_mask_returns_correct_shape(self):
+        np.random.seed(3)
+        degree = tuple(np.random.randint(0, high=10, size=2))
+        ct = CoordinateTransform(degree=degree)
+        mask = ct._create_mask_for_parameters()
+        self.assertEqual(mask.shape, ct._coeffs.shape)
+
     def test_update_always_keeps_dc_term_0(self):
         np.random.seed(72)
         ct = CoordinateTransform()
@@ -47,7 +54,7 @@ class TestCoordinateTransform(unittest.TestCase):
     def test_params_are_correct_size(self):
         degree = (6, 7)
         ct = CoordinateTransform(degree=degree)
-        self.assertEqual(ct.params.size, ct._coeffs.size - 2)
+        self.assertEqual(ct.params.size, ct._coeffs.size - 4)
 
     def test_update_changes_the_evaluated_coordinates(self):
         np.random.seed(72)
@@ -93,7 +100,7 @@ class TestCoordinateTransform(unittest.TestCase):
         np.random.seed(72)
         ct.update(np.random.randn(ct.params.size))
         x, y = np.random.randn(2, 10)
-        dx = 1e-7
+        dx = 1e-8
 
         dxdx_matrix = ct.evaluate_derivative('X', 'x')
         dydx_matrix = ct.evaluate_derivative('Y', 'x')

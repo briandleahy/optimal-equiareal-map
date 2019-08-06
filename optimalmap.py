@@ -18,8 +18,7 @@ class CoordinateTransform(object):
         self.degree = degree
         shp = [2] + (np.array(degree)+1).tolist()
         self._coeffs = np.zeros(shp, dtype='float')  # 2 for x,y
-        self._mask = np.ones(shp, dtype='bool')
-        self._mask[:, 0, 0] = False
+        self._mask = self._create_mask_for_parameters()
         # Then we want to start at a reasonable param value (X=x etc)
         self._coeffs[0, 1, 0] = 1
         self._coeffs[1, 0, 1] = 1
@@ -33,8 +32,7 @@ class CoordinateTransform(object):
 
     def evaluate(self, x, y):
         """New coordinates as a function of the old"""
-        ans = [polyval2d(x, y, c) for c in self._coeffs]
-        return ans
+        return [polyval2d(x, y, c) for c in self._coeffs]
 
     def evaluate_derivative(self, x_new='X', x_old='x'):
         """returns the matrix that, when polyval'd, gives dX/dx where
@@ -51,6 +49,14 @@ class CoordinateTransform(object):
         aij = self._coeffs[coef_ind]
         t = np.arange(aij.shape[aij_ind]).reshape(shp)
         return np.roll(aij * t, -1, axis=aij_ind)
+
+    def _create_mask_for_parameters(self):
+        # We mask out the DC terms and rotations:
+        mask = np.ones(self._coeffs.shape, dtype='bool')
+        mask[:, 0, 0] = False
+        mask[0, 0, 1] = False
+        mask[1, 1, 0] = False
+        return mask
 
 
 class LambertCylindricalQuadrature(object):
