@@ -244,6 +244,15 @@ class TestMetricCostEvaluator(unittest.TestCase):
         self.assertTrue(
             np.isclose(np.linalg.norm(vals_0), np.linalg.norm(vals_2), **TOLS))
 
+    def test_cost_is_invariant_to_nquadpts(self):
+        fitter10 = MetricCostEvaluator(area_penalty=3.0, nquadpts=10)
+        fitter50 = MetricCostEvaluator(area_penalty=3.0, nquadpts=50)
+        params = fitter10.params
+
+        cost10 = np.sum(fitter10.call(params)**2)
+        cost50 = np.sum(fitter50.call(params)**2)
+        self.assertAlmostEqual(cost10, cost50, places=7)
+
 
 class TestMisc(unittest.TestCase):
     def test_l2av_with_ones(self):
