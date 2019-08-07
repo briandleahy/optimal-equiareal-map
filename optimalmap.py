@@ -1,3 +1,14 @@
+# FIXME
+# The problem here is that the metric diverges like 1/sin(2theta) at the
+# poles (so a 1/x singularity), which is _not integrable_. So while
+# you don't get infinities, you do get something which diverges as you
+# add more points. This is why you get weirdness with the maps as the degree
+# goes higher.
+# The solution is simple: optimize the metric on the punctured sphere,
+# with a certain range away from the poles. Doing something like +- 5 deg
+# latitude gets you out of the regions of interest everywhere (within
+# antarctic mainland and within the arctic ocean.) -- northernmost land
+# is 83d40m northn.
 import itertools
 
 import numpy as np
