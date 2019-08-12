@@ -309,6 +309,38 @@ class TestMisc(unittest.TestCase):
         t = np.ones(10) * 2
         self.assertTrue(np.isclose(l2av(t), 4.0, **TOLS))
 
+    def test_generate_gauss_legendre_pts_npts(self):
+        np.random.seed(72)
+        lower, upper = np.sort(np.random.randn(2) * 10)
+        for npts in [10, 20, 30, 40, 50]:
+            pts, wts = generate_leggauss_pts_and_wts(lower, upper, npts)
+            self.assertEqual(pts.size, npts)
+            self.assertEqual(wts.size, npts)
+
+    def test_generate_gauss_legendre_pts_scales_wts(self):
+        np.random.seed(72)
+        for trial in range(5):  # a little more stringent of a test
+            lower, upper = np.sort(np.random.randn(2) * 10)
+            pts, wts = generate_leggauss_pts_and_wts(lower, upper)
+            self.assertAlmostEqual(wts.sum(), upper - lower, places=13)
+
+    def test_generate_gauss_legendre_pts_shifts_pts(self):
+        np.random.seed(72)
+        for trial in range(5):  # a little more stringent of a test
+            lower, upper = np.sort(np.random.randn(2) * 10)
+            pts, wts = generate_leggauss_pts_and_wts(lower, upper)
+            self.assertGreater(pts[0], lower)
+            self.assertLess(pts[1], upper)
+
+    def test_generate_gauss_legendre_pts_integration_on_transcendental(self):
+        np.random.seed(72)
+        lower, upper = np.sort(np.random.randn(2) * 10)
+        pts, wts = generate_leggauss_pts_and_wts(lower, upper, npts=100)
+        integral = np.sum(wts * np.cos(pts))
+        truth = np.sin(upper) - np.sin(lower)
+        self.assertAlmostEqual(integral, truth, places=13)
+
+
 
 if __name__ == '__main__':
     unittest.main()

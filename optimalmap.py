@@ -78,10 +78,8 @@ class LambertCylindricalQuadrature(object):
 
     def _setup_pts(self):
         # x runs from -pi, pi; y from -1, 1. So we need to adjust px, wx:
-        px, wx = np.polynomial.legendre.leggauss(self.nxpts)
-        px *= np.pi
-        wx *= np.pi
-        py, wy = np.polynomial.legendre.leggauss(self.nypts)
+        px, wx = generate_leggauss_pts_and_wts(-np.pi, np.pi, npts=self.nxpts)
+        py, wy = generate_leggauss_pts_and_wts(-1, 1, self.nypts)
         xp, yp = np.meshgrid(px, py, indexing='ij')
         self._xypts = np.array([[x, y] for x, y in zip(xp.flat, yp.flat)])
         self._xywts = np.outer(wx, wy).ravel()
@@ -168,4 +166,13 @@ class MetricCostEvaluator(object):
 
 def l2av(x):
     return np.mean(x*x)
+
+
+def generate_leggauss_pts_and_wts(lower, upper, npts=30):
+    pts, wts = np.polynomial.legendre.leggauss(npts)
+    pts += 1
+    pts *= 0.5 * (upper - lower)
+    pts += lower
+    wts *= 0.5 * (upper - lower)
+    return pts, wts
 
