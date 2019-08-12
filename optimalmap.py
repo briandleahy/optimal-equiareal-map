@@ -148,8 +148,8 @@ class MetricCostEvaluator(object):
         new_metric = self._calculate_metric()
         deviation_from_isometry = new_metric - np.eye(2).reshape(1, 2, 2)
         deviation_from_equiareal = np.linalg.det(new_metric) - 1.
-        deviation_from_isometry *= self.quadobj._xywts_sqrt.reshape(-1, 1, 1)
-        deviation_from_equiareal *= self.quadobj._xywts_sqrt
+        deviation_from_isometry *= self.quadobj.sqrt_wts.reshape(-1, 1, 1)
+        deviation_from_equiareal *= self.quadobj.sqrt_wts
         return deviation_from_isometry.ravel(), deviation_from_equiareal
 
     def _calculate_metric(self):
@@ -164,7 +164,6 @@ class MetricCostEvaluator(object):
         # 3. The new metric
         new_metric = np.einsum('...ij,...ik,...jl', old_metric, dXdx, dXdx)
         return new_metric
-
 
 
 def l2av(x):
