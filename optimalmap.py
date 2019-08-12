@@ -71,15 +71,18 @@ class CoordinateTransform(object):
 
 
 class LambertCylindricalQuadrature(object):
-    def __init__(self, nxpts=30):
+    def __init__(self, nxpts=30, yrange=(-1, 1)):
         self.nxpts = nxpts
+        self.yrange = yrange
         self.nypts = int(nxpts / np.pi) + 1
         self._setup_pts()
 
     def _setup_pts(self):
         # x runs from -pi, pi; y from -1, 1. So we need to adjust px, wx:
-        px, wx = generate_leggauss_pts_and_wts(-np.pi, np.pi, npts=self.nxpts)
-        py, wy = generate_leggauss_pts_and_wts(-1, 1, self.nypts)
+        px, wx = generate_leggauss_pts_and_wts(
+            -np.pi, np.pi, npts=self.nxpts)
+        py, wy = generate_leggauss_pts_and_wts(
+            self.yrange[0], self.yrange[1], self.nypts)
         xp, yp = np.meshgrid(px, py, indexing='ij')
         self._xypts = np.array([[x, y] for x, y in zip(xp.flat, yp.flat)])
         self._xywts = np.outer(wx, wy).ravel()

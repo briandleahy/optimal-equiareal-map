@@ -202,6 +202,14 @@ class TestLambertQuadrature(unittest.TestCase):
 
         self.assertTrue(np.isclose(surface_area, 4 * np.pi, **TOLS))
 
+    def test_ybounds_on_constant(self):
+        yrange = (-0.5, 0.5)
+        quad = LambertCylindricalQuadrature(nxpts=30, yrange=yrange)
+        f = lambda x: np.ones(x.shape[0])
+        integrated_area = quad.integrate(f)
+        fractional_area = 4 * np.pi * (yrange[1] - yrange[0]) / 2
+        self.assertAlmostEqual(integrated_area, fractional_area, places=14)
+
 
 class TestLambertProjection(unittest.TestCase):
     def test_init_gives_diagonal_metric(self):
@@ -339,7 +347,6 @@ class TestMisc(unittest.TestCase):
         integral = np.sum(wts * np.cos(pts))
         truth = np.sin(upper) - np.sin(lower)
         self.assertAlmostEqual(integral, truth, places=13)
-
 
 
 if __name__ == '__main__':
