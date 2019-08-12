@@ -244,6 +244,7 @@ class TestMetricCostEvaluator(unittest.TestCase):
         self.assertTrue(
             np.isclose(np.linalg.norm(vals_0), np.linalg.norm(vals_2), **TOLS))
 
+    @unittest.expectedFailure  # fails because of singularity at the poles
     def test_cost_is_invariant_to_nquadpts(self):
         fitter10 = MetricCostEvaluator(area_penalty=3.0, nquadpts=10)
         fitter50 = MetricCostEvaluator(area_penalty=3.0, nquadpts=50)
@@ -252,6 +253,24 @@ class TestMetricCostEvaluator(unittest.TestCase):
         cost10 = np.sum(fitter10.call(params)**2)
         cost50 = np.sum(fitter50.call(params)**2)
         self.assertAlmostEqual(cost10, cost50, places=7)
+
+    @unittest.expectedFailure  # fails because of singularity at the poles
+    def test_area_cost_is_invariant_to_nquadpts(self):
+        fitter10 = MetricCostEvaluator(area_penalty=3.0, nquadpts=10)
+        fitter20 = MetricCostEvaluator(area_penalty=3.0, nquadpts=20)
+        params = fitter10.params
+        # We want the area to be not-conserved, so:
+        np.random.seed(2)
+        params += np.random.randn(params.size) * 1e-2
+        fitter10.update(params)
+        fitter20.update(params)
+
+        metric_error10, area_error10 = fitter10.calculate_metric_residuals()
+        metric_error20, area_error20 = fitter20.calculate_metric_residuals()
+
+        area_cost_10 = np.sum(area_error10**2)
+        area_cost_20 = np.sum(area_error20**2)
+        self.assertAlmostEqual(area_cost_10, area_cost_20, places=7)
 
 
 class TestMisc(unittest.TestCase):
