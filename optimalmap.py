@@ -101,6 +101,14 @@ class LambertCylindricalQuadrature(object):
     def pts(self):
         return self._xypts.copy()
 
+    @property
+    def wts(self):
+        return self._xywts.copy()
+
+    @property
+    def sqrt_wts(self):
+        return self._xywts_sqrt.copy()
+
 
 class LambertProjection(object):
     def __init__(self, xypts):

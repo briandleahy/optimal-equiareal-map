@@ -144,7 +144,34 @@ class TestLambertQuadrature(unittest.TestCase):
         nxpts = 25
         quad = LambertCylindricalQuadrature(nxpts=nxpts)
         pts = quad.pts
-        self.assertTrue(pts.shape == (quad.nxpts * quad.nypts, 2))
+        self.assertEqual(pts.shape, (quad.nxpts * quad.nypts, 2))
+
+    def test_wts_returns_copy(self):
+        nxpts = 25
+        quad = LambertCylindricalQuadrature(nxpts=nxpts)
+        wts = quad.wts
+        self.assertTrue(np.allclose(wts, quad._xywts, **TOLS))
+        self.assertTrue(wts is not quad._xywts)
+
+    def test_wts_is_correct_size(self):
+        nxpts = 25
+        quad = LambertCylindricalQuadrature(nxpts=nxpts)
+        self.assertEqual(quad.pts.shape, quad.wts.shape + (2,))
+
+    def test_sqrt_wts_is_correct_size(self):
+        nxpts = 25
+        quad = LambertCylindricalQuadrature(nxpts=nxpts)
+        self.assertEqual(quad.wts.shape, quad.sqrt_wts.shape)
+
+    def test_sqrt_wts_returns_copy(self):
+        nxpts = 25
+        quad = LambertCylindricalQuadrature(nxpts=nxpts)
+        self.assertTrue(quad.sqrt_wts is not quad._xywts_sqrt)
+
+    def test_sqrt_wts_returns_correct_values(self):
+        nxpts = 25
+        quad = LambertCylindricalQuadrature(nxpts=nxpts)
+        self.assertTrue(np.allclose(quad.sqrt_wts, np.sqrt(quad.wts), **TOLS))
 
     def test_integrate_on_constant(self):
         quad = LambertCylindricalQuadrature()
