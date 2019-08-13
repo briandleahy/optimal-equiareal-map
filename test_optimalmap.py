@@ -230,7 +230,7 @@ class TestLambertProjection(unittest.TestCase):
 class TestMetricCostEvaluator(unittest.TestCase):
     def test_calculate_metric_when_no_transformation(self):
         fitter = MetricCostEvaluator()
-        old_metric = fitter.lambert_projection.metric
+        old_metric = fitter.projection.metric
         new_metric = fitter._calculate_metric()
         self.assertTrue(np.allclose(old_metric, new_metric, **TOLS))
 

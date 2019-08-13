@@ -9,6 +9,12 @@
 # latitude gets you out of the regions of interest everywhere (within
 # antarctic mainland and within the arctic ocean.) -- northernmost land
 # is 83d40m northn.
+# An alternative option is to use an alternative equiareal projection
+# such as a Mollweide or Sanson projection and do the quadrature over
+# that.
+# To do this, you should create a general projection class which takes
+# (theta, phi) and maps to (x, y), and calculates a metric at those
+# points.
 import itertools
 
 import numpy as np
@@ -113,9 +119,7 @@ class LambertCylindricalQuadrature(object):
 
 class LambertProjection(object):
     def __init__(self, xypts):
-        """xypts = [N, 2] = (phi, theta).
-
-        Note this uses (phi, theta) not (longitutde, latitude)"""
+        """xypts = [N, 2] = (x, y) in lambert projection = (phi, cos(theta))"""
         self.metric = np.zeros([xypts.shape[0], 2, 2])
         sin2theta = 1 - xypts[:, 1]**2
         self.metric[:, 0, 0] = 1.0 / sin2theta
@@ -125,13 +129,16 @@ class LambertProjection(object):
 
 
 class MetricCostEvaluator(object):
-    max_latitude_radians = np.pi * 80 / 180.
-    yrange = (-np.sin(max_latitude_radians), np.sin(max_latitude_radians))
-
-    def __init__(self, nquadpts=30, degree=(5, 5), area_penalty=1.):
+    def __init__(self, nquadpts=30, degree=(5, 5), area_penalty=1.,
+                 yrange=None):
+        if yrange is None:
+            max_latitude_radians = np.pi * 80 / 180.
+            ymax = np.sin(max_latitude_radians)
+            yrange = (-ymax, ymax)
+        self.yrange = yrange
         self.quadobj = LambertCylindricalQuadrature(
             nxpts=nquadpts, yrange=self.yrange)
-        self.lambert_projection = LambertProjection(self.quadobj.pts)
+        self.projection = LambertProjection(self.quadobj.pts)
         self.transform = CoordinateTransform(degree=degree)
         self.area_penalty = area_penalty
 
@@ -160,7 +167,7 @@ class MetricCostEvaluator(object):
         return deviation_from_isometry.ravel(), deviation_from_equiareal
 
     def _calculate_metric(self):
-        old_metric = self.lambert_projection.metric
+        old_metric = self.projection.metric
         # 2. The transformation matrix dX/dx
         xy = self.quadobj.pts
         dXdx = np.zeros([xy.shape[0], 2, 2], dtype='float')
