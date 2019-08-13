@@ -307,6 +307,28 @@ class TestMetricCostEvaluator(unittest.TestCase):
         area_cost_20 = np.sum(area_error20**2)
         self.assertAlmostEqual(area_cost_10, area_cost_20, places=7)
 
+    def test_default_yrange_is_large_enough(self):
+        # We want the yrange to be "near" (-1, 1), but to be away
+        # from (-1, 1) to avoid the 1/sin(pi/2) problem.
+        fitter = MetricCostEvaluator()
+        self.assertLess(fitter.yrange[0], -0.9)
+        self.assertGreater(fitter.yrange[1], 0.9)
+
+    def test_default_yrange_is_small_enough(self):
+        # We want the yrange to be "near" (-1, 1), but to be away
+        # from (-1, 1) to avoid the 1/sin(pi/2) problem.
+        fitter = MetricCostEvaluator()
+        self.assertGreater(fitter.yrange[0], -0.99)
+        self.assertLess(fitter.yrange[1], 0.99)
+
+    def test_default_yrange_affects_integration(self):
+        # We want the yrange to be "near" (-1, 1), but to be away
+        # from (-1, 1) to avoid the 1/sin(pi/2) problem.
+        fitter = MetricCostEvaluator()
+        total_area = np.ptp(fitter.yrange) * 2 * np.pi
+        integrated_area = fitter.quadobj.wts.sum()
+        self.assertAlmostEqual(total_area, integrated_area, places=14)
+
 
 class TestMisc(unittest.TestCase):
     def test_l2av_with_ones(self):

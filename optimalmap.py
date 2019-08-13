@@ -113,7 +113,9 @@ class LambertCylindricalQuadrature(object):
 
 class LambertProjection(object):
     def __init__(self, xypts):
-        """xypts = [N, 2] = (phi, theta)"""
+        """xypts = [N, 2] = (phi, theta).
+
+        Note this uses (phi, theta) not (longitutde, latitude)"""
         self.metric = np.zeros([xypts.shape[0], 2, 2])
         sin2theta = 1 - xypts[:, 1]**2
         self.metric[:, 0, 0] = 1.0 / sin2theta
@@ -123,8 +125,12 @@ class LambertProjection(object):
 
 
 class MetricCostEvaluator(object):
+    max_latitude_radians = np.pi * 80 / 180.
+    yrange = (-np.sin(max_latitude_radians), np.sin(max_latitude_radians))
+
     def __init__(self, nquadpts=30, degree=(5, 5), area_penalty=1.):
-        self.quadobj = LambertCylindricalQuadrature(nxpts=nquadpts)
+        self.quadobj = LambertCylindricalQuadrature(
+            nxpts=nquadpts, yrange=self.yrange)
         self.lambert_projection = LambertProjection(self.quadobj.pts)
         self.transform = CoordinateTransform(degree=degree)
         self.area_penalty = area_penalty
