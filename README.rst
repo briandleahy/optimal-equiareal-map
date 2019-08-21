@@ -16,10 +16,45 @@ Also, fair warning -- I'm not a cartographer, just a wandering physicist who lik
 The Differential Geometry
 ==========================
 
-To talk about shapes and sizes in maps, we first need a mathematical language to describe maps. That language is differential geometry, the same mathematical basis for general relativity. Differential geometry is a full upper level mathematics course, which I am not going to pretend to cover in full here. But I will give a quick overview of what we need to know for mapping. (If you want to learn differential geometry, I'd really like to plug `this book <https://www.amazon.com/Differential-Geometry-Dover-Books-Mathematics/dp/0486667219/>`_.)
+To talk about shapes and sizes in maps, we first need a mathematical language to describe maps. That language is differential geometry, the same mathematical basis for general relativity. Differential geometry is a full upper level mathematics course, which I am not going to pretend to cover in full here. But I will give a quick overview of what we need to know for mapping. (If you want to learn differential geometry, I'll enthusiastically plug `this book <https://www.amazon.com/Differential-Geometry-Dover-Books-Mathematics/dp/0486667219/>`_.)
+
+We start with a description of real, physical distances on the Earth. We can represent each point on the Earth's surface by a three-dimensional vector :math:`\vec{x}`, which we'll index with coordinates :math:`(u^1, u^2)`. (Note that I'm using a superscript here, not an exponent. I'll use parentheses when I want to denote an exponent.) If we write the coordinates in shorthand as :math:`(u^1, u^2) = u^\alpha`, we can denote each point on the Earth's surface compactly as :math:`\vec{x}(u^\alpha)`. You can think of the coordinates :math:`u^\alpha` as latitude and longitude or :math:`\theta` and :math:`\phi`, or -- more useful here -- as the :math:`x` and :math:`y` coordinates of a map.
+
+Our end goal is to make a map where shapes and sizes on the map are the same as shapes and sizes on the Earth's surface. To do this, we need a way to relate distances on the Earth's surface to those on the map. Let's consider the distance on the Earth's surface between the point :math:`\vec{x}(u^\alpha)` and :math:`\vec{x}(u^\alpha + d^\alpha)`, where :math:`d^\alpha` is small in some sense. We can write this distance :math:`s` as:
+
+ ..  math::
+
+    (s)^2 = \|\vec{x}(u_\alpha + d_\alpha) - \vec{x}(u_\alpha)\|^2
+
+Taylor expanding :math:`\vec{x}(u_\alpha + d_\alpha)` gives
+
+ ..  math::
+
+    (s)^2 = \frac {\partial \vec{x}} {\partial u_1} \, \cdot \, \frac {\partial \vec{x}} {\partial u_1} \, (d_1)^2 + 2 \frac {\partial \vec{x}} {\partial u_1} \, \cdot \, \frac {\partial \vec{x}} {\partial u_2} {d_1 d_2} + \frac {\partial \vec{x}} {\partial u_2} \frac {\partial \vec{x}} {\partial u_2} (d_2)^2
 
 
-We start with a description of real, physical distances on the Earth. We can represent each point on the Earth's surface by a three-dimensional vector, which we'll call :math:`\vec{x}(u_\alpha)`.
+We can write this compactly as
+
+ ..  math::
+
+    (s)^2 = g_{\alpha \beta} d^\alpha d^\beta
+
+where we sum over repeated indices, and where we have introduced the *metric*
+
+ ..  math::
+
+    g_{\alpha \beta} = \frac {\partial \vec{x}} {\partial u_\alpha} \, \cdot \, \frac {\partial \vec{x}} {\partial u_\beta}
+
+The metric turns out to *the* most important thing in differential geometry. The metric determines not only distances, but also angles and areas of objects. For instance, the area of the paralleliped ...
+
+What do I want to discuss?
+ - concept of a map.
+ - metric
+ - getting the element of the area from the metric
+ - getting shapes from the metric
+ - transforming a metric.
+
+A little algebra shows that we can calculate distances
 
 
 1.  The problem: maps, equiareal, conformal, metrics, etc
