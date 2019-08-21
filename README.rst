@@ -20,13 +20,13 @@ To talk about shapes and sizes in maps, we first need a mathematical language to
 
 We start with a description of real, physical distances on the Earth. We can represent each point on the Earth's surface by a three-dimensional vector :math:`\vec{x}`, which we'll index with coordinates :math:`(u^1, u^2)`. (Note that I'm using a superscript here, not an exponent. I'll use parentheses when I want to denote an exponent.) If we write the coordinates in shorthand as :math:`(u^1, u^2) = u^\alpha`, we can denote each point on the Earth's surface compactly as :math:`\vec{x}(u^\alpha)`. You can think of the coordinates :math:`u^\alpha` as latitude and longitude or :math:`\theta` and :math:`\phi`, or -- more useful here -- as the :math:`x` and :math:`y` coordinates of a map.
 
-Our end goal is to make a map where shapes and sizes on the map are the same as shapes and sizes on the Earth's surface. To do this, we need a way to relate distances on the Earth's surface to those on the map. Let's consider the distance on the Earth's surface between the point :math:`\vec{x}(u^\alpha)` and :math:`\vec{x}(u^\alpha + d^\alpha)`, where :math:`d^\alpha` is small in some sense. We can write this distance :math:`s` as:
+Our end goal is to make a map where shapes and sizes on the map are the same as shapes and sizes on the Earth's surface. To do this, we need a way to relate distances on the Earth's surface to those on the map. Let's consider the distance on the Earth's surface between the point :math:`\vec{x}(u^\alpha)` and :math:`\vec{x}(u^\alpha + v^\alpha)`, where :math:`v^\alpha` is small in some sense. We can write this distance :math:`s` as:
 
  ..  math::
 
-    (s)^2 = \|\vec{x}(u_\alpha + d_\alpha) - \vec{x}(u_\alpha)\|^2
+    (s)^2 = \|\vec{x}(u_\alpha + v_\alpha) - \vec{x}(u_\alpha)\|^2
 
-Taylor expanding :math:`\vec{x}(u_\alpha + d_\alpha)` gives
+Taylor expanding :math:`\vec{x}(u^\alpha + v^\alpha)` gives
 
  ..  math::
 
@@ -37,7 +37,7 @@ We can write this compactly as
 
  ..  math::
 
-    (s)^2 = g_{\alpha \beta} d^\alpha d^\beta
+    (s)^2 = g_{\alpha \beta} v^\alpha d^\beta
 
 where we sum over repeated indices, and where we have introduced the *metric*
 
@@ -45,7 +45,19 @@ where we sum over repeated indices, and where we have introduced the *metric*
 
     g_{\alpha \beta} = \frac {\partial \vec{x}} {\partial u_\alpha} \, \cdot \, \frac {\partial \vec{x}} {\partial u_\beta}
 
-The metric turns out to *the* most important thing in differential geometry. The metric determines not only distances, but also angles and areas of objects. For instance, the area of the paralleliped ...
+The metric :math:`g_{\alpha \beta}` in general changes from point to point in the map. As you can see from its definition, at each point on the map the metric can be represented as a symmetric matrix, although there is a slightly more powerful way to think about the metric, as we'll see a little later. If the map perfectly represented the world, then all the distances between all the points would be proportional, and the metric would be the identity:
+
+ ..  math::
+
+    \mathrm{Perfect,\,flat\,metric} = \left( \begin{array}{cc} 1 & 0 \\ 0 & 1 \end{array} \right)
+
+The metric turns out to *the* most important thing in differential geometry. The metric determines not only distances, but also angles and areas of objects. For instance, if we draw a square on the map, with a lower-left corner at :math:`u^\alpha` and an upper right corner at :math:`u^\alpha + v^\alpha`, the area of the corresponding region on the Earth's surface is :math:`\sqrt{g} \, dv^1 dv^2`, where :math:`\sqrt{g}` is the determinant of the metric. Likwise, if we draw two lines, each starting at :math:`u^\alpha` but one ending at :math:`u^\alpha + v^\alpha` and the other ending at :math:`u^\alpha + t^\alpha`, the angle between those two lines on the Earth's surface is :math:`\theta = \mathrm{arccos}(g_{\alpha \beta} t^\alpha v^\beta)`.
+
+
+something about maps here?
+
+
+Now, at this stage, it should be obvious that our problem is well-posed: Find a coordinate transformation such that the metric :math:`g_{\alpha \beta}` is the identity.
 
 What do I want to discuss?
  - concept of a map.
@@ -53,8 +65,6 @@ What do I want to discuss?
  - getting the element of the area from the metric
  - getting shapes from the metric
  - transforming a metric.
-
-A little algebra shows that we can calculate distances
 
 
 1.  The problem: maps, equiareal, conformal, metrics, etc
