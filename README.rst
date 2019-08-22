@@ -53,29 +53,35 @@ The metric :math:`g_{\alpha \beta}` in general changes from point to point in th
 
 The metric turns out to *the* most important thing in differential geometry. The metric determines not only distances, but also angles and areas of objects. For instance, if we draw a square on the map, with a lower-left corner at :math:`u^\alpha` and an upper right corner at :math:`u^\alpha + v^\alpha`, the area of the corresponding region on the Earth's surface is :math:`\sqrt{g} \, dv^1 dv^2`, where :math:`\sqrt{g}` is the determinant of the metric. Likwise, if we draw two lines, each starting at :math:`u^\alpha` but one ending at :math:`u^\alpha + v^\alpha` and the other ending at :math:`u^\alpha + t^\alpha`, the angle between those two lines on the Earth's surface is :math:`\theta = \mathrm{arccos}(g_{\alpha \beta} t^\alpha v^\beta)`.
 
+TODO something about maps here? -- there is a conceptual leap here which is that the distances on the map are the distance in the plane.... Also we need to talk about transforming metrics, conformal maps, equiareal maps, the combination of the two gives a perfect map.
 
-something about maps here?
+Now, at this stage, it should be obvious how to create the perfect map: Find a coordinate transformation such that the metric :math:`g_{\alpha \beta}` is the identity. Unfortunately, a `classic theorem <https://en.wikipedia.org/wiki/Theorema_Egregium>`_ of differential geometry proves that it is not possible to map the surface of a sphere to a flat plane without deformations. The reason has to do with the Gaussian curvature, which depends only on the metric. If it were possible to map the sphere to the plane without distortion, then the metric on the map would be equal to the metric on the sphere, which would imply that the Gaussian curvature of the sphere is equal to that of the map. But the Gaussian curvature of a plane is 0 and the Gaussian curvature of a sphere is positive. So it's not posible to map a sphere to a plane without distortion.
 
-
-Now, at this stage, it should be obvious that our problem is well-posed: Find a coordinate transformation such that the metric :math:`g_{\alpha \beta}` is the identity.
-
-What do I want to discuss?
- - concept of a map.
- - metric
- - getting the element of the area from the metric
- - getting shapes from the metric
- - transforming a metric.
+However, it *is* possible to create a conformal map of a sphere onto a plane, which preserves the angles between any two lines -- the classic `Mercator projection <https://en.wikipedia.org/wiki/Mercator_projection>`_ is an example of a conformal map. And it *is* possible to create an equiareal map of a sphere onto a plane, preserving the area of any shape -- some examples of equiareal projections are the `Lambert cylindrical <https://en.wikipedia.org/wiki/Lambert_cylindrical_equal-area_projection>`_ and the `Mollweide <https://en.wikipedia.org/wiki/Mollweide_projection>`_. It's just *not* possible to map a sphere onto a plane with a projection that is both conformal and equiareal. More importantly, though, there are *many* different conformal map projections, and *many* different conformal map projections.
 
 
-1.  The problem: maps, equiareal, conformal, metrics, etc
-    The solution is a tradeoff.
+The Solution
+============
 
-2.  How do we pick that tradeoff?
+What I will do here is look for "the best" equiareal map projection. Specifically, I will look for the equiareal map projection that minimizes the distortion, as measured by some cost function. We'll find the best map projection numerically, so we'll want a cost function that allows for fast numerical computation and optimization. Then we'll parameterize the space of possible maps and search through that parameter space to find the best map. I'll choose the cost function and the parameterization of the maps with efficient computation in mind.
 
-    a.  Cost function for non-conformality
-    b.  Constraint for equiareal: Lagrange multiplier
-    c.  Cost function as sum of squares to make it numerically simple.
-    d.  Gaussian quadrature to make it converge rapidly.
+To penalize deviations from non-conformality, we take the sum of the squares of the difference between the metric and a flat metric:
+
+ ..  math::
+
+    \int \, dx\, dy \, \sum_{\alpha, \beta} \left( g_{\alpha \beta} - \delta_{\alpha \beta} \right)^2
+
+We also need to constrain the map to be equiareal. To do this, we use a Lagrange multiplier times another sum of squares, to give the total cost function as:
+
+ ..  math::
+
+    C(\theta) = \int \, dx\, dy \, \sum_{\alpha, \beta} \left( g_{\alpha \beta} - \delta_{\alpha \beta} \right)^2 + \lambda (g - 1)^2
+
+We need to efficiently evaluate this integral over a 2D range of points. We do this using Gauss-Legendre quadrature. 
+
+
+d.  Gaussian quadrature to make it converge rapidly.
+c.  Cost function as sum of squares to make it numerically simple.
 
 3.  How do we parameterize the distribution?
 
