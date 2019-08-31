@@ -46,6 +46,7 @@ where we sum over repeated indices, and where we have introduced the *metric*
  ..  math::
 
     g_{\alpha \beta} = \frac {\partial \vec{x}} {\partial u_\alpha} \, \cdot \, \frac {\partial \vec{x}} {\partial u_\beta}
+    \;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;(1)
 
 The metric :math:`g_{\alpha \beta}` in general changes from point to point. As you can see from its definition, at each point the metric can be represented as a symmetric matrix, although there is a slightly more powerful way to think about the metric, as we'll see a little later. If the map perfectly represented the world, then all the distances between all the points would be proportional, and the metric would be the identity:
 
@@ -80,7 +81,8 @@ which looks suspiciously like the previous equation, but with a transformed metr
 
  ..  math::
 
-    \tilde{g}_{\gamma \delta} = g_{\alpha \beta} \frac{\partial u^\alpha} {\partial \tilde{u}^\gamma} \frac{\partial u^\beta} {\partial \tilde{u}^\delta} d\tilde{u}^\gamma d\tilde{u}^\delta
+    \tilde{g}_{\gamma \delta} = g_{\alpha \beta} \frac{\partial u^\alpha} {\partial \tilde{u}^\gamma} \frac{\partial u^\beta} {\partial \tilde{u}^\delta}
+    \;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;\;(2)
 
 In other words, once we calculate the metric in one coordinate system, we can relate it to the metric in any other coordinate system by matrix multiplication with the derivatives -- we don't need to recalculate the metric from scratch! In fact, the most poweful way to think about a metric is just as an object that transforms this way under coordinate transformations. In differential geometry there are a whole slough of objects that transform this way; these objects are known as *covariant tensors*. But that knowledge isn't necessary for what we'll do here.
 
@@ -94,29 +96,45 @@ The Solution
 
 What I will do here is look for the "best" equiareal map projection. Specifically, I will look for the equiareal map projection that minimizes the distortion, as measured by some cost function. We'll find the best map projection numerically, so we'll need to parameterize the space of possible maps. Then, we'll want a cost function that allows for fast numerical computation and optimization. Once we have a parameterization of the map function and a cost function for the map function,  we can search through that parameter space to find the best map function. I'll choose the cost function and the parameterization of the maps with efficient computation in mind.
 
+First, we need to parameterize the map function. We'll start with the coordinates from a normal map -- I'll start with the coordinates from the Lambert cylindrical projection :math:`(L_x, L_y)` , since it's already equiareal. Then, we'll define our map coordinates :math:`(x, y)` through two polynomials
 
-parameterization....
+ ..  math::
 
-To penalize deviations from non-conformality, we take the sum of the squares of the difference between the metric and a flat metric:
+    x = P_x(L_x, L_y; \vec{c}_x) \\
+    y = P_y(L_x, L_y; \vec{c}_y)
+
+where we will vary the coefficients :math:`\theta = (\vec{c}_x, \vec{c}_y)` of the polynomials to find the best possible map function. Using a polynomial allows us to quickly evaluate derivatives :math:`dx/dL_x`, which we can use with equation (2) to rapidly evaluate the metric in the new coordinates.
+
+Next, we need a cost function. To penalize deviations from non-conformality, we take the sum of the squares of the difference between the metric and a flat metric:
 
  ..  math::
 
     \int \, dx\, dy \, \sum_{\alpha, \beta} \left( g_{\alpha \beta} - \delta_{\alpha \beta} \right)^2
 
-We also need to constrain the map to be equiareal. To do this, we use a Lagrange multiplier times another sum of squares, to give the total cost function as:
+We also need to constrain the map to be equiareal. To do this, we add a Lagrange multiplier times another sum of squares, to give the total cost function as:
 
  ..  math::
 
-    C(\theta) = \int \, dx\, dy \, \sum_{\alpha, \beta} \left( g_{\alpha \beta} - \delta_{\alpha \beta} \right)^2 + \lambda (g - 1)^2
-
-We need to efficiently evaluate this integral over a 2D range of points. We do this using Gauss-Legendre quadrature.
+    C(\theta) = \int \, \Big[ \sum_{\alpha, \beta} \left( g_{\alpha \beta} - \delta_{\alpha \beta} \right)^2 + \lambda (g - 1)^2 \Big] \, dx\, dy
 
 
-d.  Gaussian quadrature to make it converge rapidly.
+When optimizing the map function's parameters, we'll need to evaluate this cost function many times, so we want to evaluate this integral as efficiently as possible. We do so by using `Gauss-Legendre quadrature <https://en.wikipedia.org/wiki/Gaussian_quadrature#Gauss%E2%80%93Legendre_quadrature>`_ over each of the variables x and y, to give
+
+ ..  math::
+
+    C(\theta) = \sum_{ij} w_{i} w_j \Big[\sum_{\alpha, \beta} (g_{\alpha, \beta}(x_i, y_j) - \delta_{\alpha \beta})^2 + \lambda (g(x_i, y_j) - 1)^2 \Big]
+
+where the points :math:`(x_i, y_i)` and weights :math:`(w_i, w_j)` are definted by the Gaussian quadrature rules.
+
+At this point we have a parameterization of the map function, and a cost function which is minimized when the map function has the least distortion in some sense. Now we just need to find the polynomial coefficients :math:`\theta` that minimize the cost function.
+
+Optimization
+------------
+
 c.  Cost function as sum of squares to make it numerically simple.
 
 3.  How do we parameterize the distribution?
 
-    a.  Polynomial = linear, easy to calculate derivatives
+:   a.  Polynomial = linear, easy to calculate derivatives
     b.  Remove some degenerate constraints (piston, rotation, possibly even)
 
