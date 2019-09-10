@@ -146,7 +146,7 @@ The Results
 
 So, what does it look like? After a call to ``scipy.optimize.leastsq``, in a minute or so on my machine I get a set of parameters which describe the map function which minimizes shape and size distortion. I then need to render the map. Normally, one would query a pixel (i, j) in the image to render and ask what color that should be. However, that requires knowing the inverse map from pixel (i, j) back to the world coordinates. But we don't have the inverse map, we only have the forward map. To avoid computing the inverse, what I do instead is calculate the forward map and interpolate onto pixels. This interpolation-based code is in the ``transformimage.ImageTransformer`` class. (A more elegant way would be to compute the inverse as a polynomial approximant, which can be done pretty quickly. But it's a little more work on the surface.)
 
-Doing all this for a map function parameterized by two 12 :math:`\times` 12 degree polynomials (180 total parameters after constraining a few to zero) gives this map:
+Doing all this for a map function parameterized by two 12 :math:`\times` 12 degree polynomials (180 total parameters after constraining some to zero) gives this map [#note]_:
 
   .. image:: params-degree=12-penalty=30.jpg
      :scale: 50 %
@@ -159,3 +159,5 @@ Next Steps?
 ===========
 One obvious problem with the picture above is that the poles are still mapped to a line, still giving some shape distortion at the poles. In fact, the shape distortion in this map is still infinite at the poles! This problem happens because I started from the Lambert projection (in equation 3), and the Lambert projection has infinite shape distortion at the poles (although the area at the poles is still correct in the Lambert projection). This singularity doesn't affect my numerical approach here too much, because the quadrature nodes I used in equation 4 are never exactly at the poles, so numerically the distortion is always finite. A solution to this problem would be to start from a map function that has no singularities in the metric, such as the `Mollweide <https://en.wikipedia.org/wiki/Mollweide_projection>`_ or the `Sanson <https://en.wikipedia.org/wiki/Sinusoidal_projection>`_ projection, rather than using the Lambert projection with its singularities. Perhaps I'll do this later, perhaps not.
 
+
+  .. [#note] Incidentally, doing this for a 1 :math:`\times` 1 degree polynomial produces something like the `Gall-Peters <https://en.wikipedia.org/wiki/Cylindrical_equal-area_projection>`_ projection, which `everybody loves <https://xkcd.com/977/>`_.
