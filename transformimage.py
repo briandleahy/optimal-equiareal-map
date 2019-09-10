@@ -27,7 +27,6 @@ whose inverse is outside the domain of the map), so I'll do it later.
 import itertools
 
 import numpy as np
-from scipy.interpolate import griddata
 from scipy.signal import fftconvolve
 from scipy.ndimage import binary_closing
 from skimage.morphology import remove_small_holes, disk
