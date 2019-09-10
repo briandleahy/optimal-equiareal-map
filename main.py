@@ -1,8 +1,8 @@
 from scipy.optimize import leastsq
 import matplotlib.pyplot as plt
 
-from optimalmap import *
-from transformimage import *
+from optimalmap import MetricCostEvaluator
+from transformimage import transform_image
 
 
 def find_optimal_map(area_penalty, degree=6, quiet=False, nquadpts=None):
