@@ -1,3 +1,4 @@
+import numpy as np
 from scipy.optimize import leastsq
 import matplotlib.pyplot as plt
 
@@ -5,9 +6,9 @@ from optimalmap import MetricCostEvaluator
 from transformimage import transform_image
 
 
-def find_optimal_map(area_penalty, degree=6, quiet=False, nquadpts=None):
+def find_optimal_map(area_penalty, degree=12, quiet=False, nquadpts=None):
     if nquadpts is None:
-        nquadpts = 12 * degree
+        nquadpts = 6 * degree
     cost_evaluator = MetricCostEvaluator(
         degree=(degree, degree), area_penalty=area_penalty, nquadpts=nquadpts)
     # Then we change the transformation to start from Gall-Peters:
@@ -32,19 +33,20 @@ def find_optimal_map(area_penalty, degree=6, quiet=False, nquadpts=None):
 
 
 def main():
-    # area_penalties = [1, 30., 2e2]
-    area_penalties = [30.]
-    all_cost_evaluators = [find_optimal_map(p) for p in area_penalties]
-    transformations = [c.transform for c in all_cost_evaluators]
+    area_penalty = 30.0
+    cost_evaluator = find_optimal_map(area_penalty)
+    transform = cost_evaluator.transform
     old_image = plt.imread('./lambert-cropped.png')
-    for penalty, transform in zip(area_penalties, transformations):
-        basename = './params-degree={}-penalty={}'.format(
-            transform.degree[0], round(penalty))
-        np.savetxt(basename + '.csv', transform.params, delimiter=',')
-        new_image = transform_image(old_image, transform)
-        plt.imsave(basename + '.png', new_image)
+    basename = './params-degree={}-penalty={}'.format(
+        transform.degree[0], round(area_penalty))
+    np.savetxt(basename + '.csv', transform.params, delimiter=',')
+    new_image = transform_image(old_image, transform)
+    plt.imsave(basename + '.png', new_image)
+    return new_image, transform
 
 
 if __name__ == '__main__':
     main()
+    # degree = 12: 1 min 24 s. Increasing the degree to 20 doesn't make
+    # any significant differences except for longer run time.
 
