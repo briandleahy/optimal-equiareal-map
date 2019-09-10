@@ -34,6 +34,13 @@ class TestCoordinateTransform(unittest.TestCase):
         mask = ct._create_mask_for_parameters()
         self.assertEqual(mask.shape, ct._coeffs.shape)
 
+    def test_create_mask_returns_correct_dtype(self):
+        np.random.seed(3)
+        degree = tuple(np.random.randint(0, high=10, size=2))
+        ct = CoordinateTransform(degree=degree)
+        mask = ct._create_mask_for_parameters()
+        self.assertEqual(mask.dtype, np.bool)
+
     def test_update_always_keeps_dc_term_0(self):
         np.random.seed(72)
         ct = CoordinateTransform()
@@ -52,9 +59,10 @@ class TestCoordinateTransform(unittest.TestCase):
         self.assertTrue(p1 is not p2)
 
     def test_params_are_correct_size(self):
-        degree = (6, 7)
+        degree = (5, 5)
+        correct_size = np.prod(np.array(degree) + 1) - 2
         ct = CoordinateTransform(degree=degree)
-        self.assertEqual(ct.params.size, ct._coeffs.size - 4)
+        self.assertEqual(ct.params.size, correct_size)
 
     def test_update_changes_the_evaluated_coordinates(self):
         np.random.seed(72)
@@ -68,6 +76,24 @@ class TestCoordinateTransform(unittest.TestCase):
 
         self.assertFalse(np.allclose(new_x, x, **SOFTTOLS))
         self.assertFalse(np.allclose(new_y, y, **SOFTTOLS))
+
+    def test_evaluate_returns_x_even_in_y(self):
+        ct = CoordinateTransform()
+        np.random.seed(2104)
+        ct.update(
+            ct.params + 1e-2 * np.random.randn(ct.params.size))
+        plusy = ct.evaluate(1.0, +0.2)
+        minusy = ct.evaluate(1.0, -0.2)
+        self.assertAlmostEqual(plusy[0], minusy[0], places=14)
+
+    def test_evaluate_returns_y_even_in_x(self):
+        ct = CoordinateTransform()
+        np.random.seed(2104)
+        ct.update(
+            ct.params + 1e-2 * np.random.randn(ct.params.size))
+        plusx = ct.evaluate(+0.2, 0.2)
+        minusx = ct.evaluate(-0.2, 0.2)
+        self.assertAlmostEqual(plusx[1], minusx[1], places=14)
 
     def test_evaluate_derivative_when_identity_transformation(self):
         ct = CoordinateTransform()

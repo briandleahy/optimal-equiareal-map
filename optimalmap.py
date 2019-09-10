@@ -1,4 +1,4 @@
-# FIXME
+# TODO
 # The problem here is that the metric diverges like 1/sin(2theta) at the
 # poles (so a 1/x singularity), which is _not integrable_. So while
 # you don't get infinities, you do get something which diverges as you
@@ -68,11 +68,15 @@ class CoordinateTransform(object):
         return np.roll(aij * t, -1, axis=aij_ind)
 
     def _create_mask_for_parameters(self):
-        # We mask out the DC terms and rotations:
         mask = np.ones(self._coeffs.shape, dtype='bool')
+        # 1. mask out the DC terms
         mask[:, 0, 0] = False
-        mask[0, 0, 1] = False
-        mask[1, 1, 0] = False
+        # 2. mask out odd cross terms, so that P_x(x, y) is even in y
+        #    and P_y(x, y) is even in x
+        for index_x in range(1, mask.shape[1], 2):
+            mask[1, index_x, :] = False
+        for index_y in range(1, mask.shape[2], 2):
+            mask[0, :, index_y] = False
         return mask
 
 
