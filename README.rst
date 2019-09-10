@@ -99,10 +99,13 @@ First, I need to create and parameterize the map function. I'll do this by trans
 
  ..  math::
 
-    x = P_x(L_x, L_y; \, \vec{\theta}_x) \\
-    y = P_y(L_x, L_y; \, \vec{\theta}_y)
+    x = \sum_{mn} \theta_{xmn} \times (L_x)^m (L_y)^n
+    \;\;\;\;\;\;\;\;\;\;\;\;\;\;\; (3a)
+    \\
+    y = \sum_{mn} \theta_{ymn} \times (L_x)^m (L_y)^n
+    \;\;\;\;\;\;\;\;\;\;\;\;\;\;\; (3b)
 
-where the coefficients :math:`\theta = (\vec{\theta}_x, \vec{\theta}_y)` of the polynomials parameterize the map function. Using a polynomial allows me to quickly evaluate derivatives :math:`dx/dL_x`, which I can use with equation (2) to rapidly evaluate the metric in the new coordinates.
+where the coefficients :math:`\theta = \{\theta_{xmn}, \theta_{ymn} \}` of the polynomials parameterize the map function. Using a polynomial allows me to quickly evaluate derivatives :math:`dx/dL_x`, which I can use with equation (2) to rapidly evaluate the metric in the new coordinates.
 
 Next, I need a cost function. To penalize deviations from non-conformality, I'll take the sum of the squares of the difference between the metric and a flat metric:
 
@@ -125,15 +128,25 @@ When optimizing the map function's parameters, I'll need to evaluate this cost f
 
 where the points :math:`(x_i, y_i)` and weights :math:`(w_i, w_j)` are definted by the Gaussian quadrature rules.
 
-At this point I have a parameterization of the map function, an easy way to calculate the metric, and a cost function which is minimized when the map function has minimal distortion in some sense. Now we just need to find the polynomial coefficients :math:`\theta` that minimize the cost function.
-
 Solving the Problem
 ===================
 
-c.  Cost function as sum of squares to make it numerically simple.
+At this point I have a parameterization of the map function, an easy way to calculate the metric, and a cost function which is minimized when the map function has minimal distortion in some sense. Now we just need to find the polynomial coefficients :math:`\theta` that minimize the cost function.
 
-3.  How do we parameterize the distribution?
+To efficiently minimize the cost function, I'll use the `Levenberg-Marquardt algorithm <https://en.wikipedia.org/wiki/Levenberg-Marquardt_algorithm>`_. The Levenberg-Marquardt algorithm is a very fast way to find local optima of a cost function that can be written as a sum of squares. Briefly, the Levenberg-Marquardt algorithm uses the structure of the cost function and first derivative information to approximate the cost function's second derivatives. As such, it converges very fast when the initial guess is near the optimal value. Since my optimal map problem is fairly simple, I'll just use Levenberg-Marquardt as implemented in `scipy <https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.least_squares.html#scipy.optimize.least_squares>`_.
 
-:   a.  Polynomial = linear, easy to calculate derivatives
-    b.  Remove some degenerate constraints (piston, rotation, possibly even)
+Finally, for aesthetic and numerical reasons I'll constrain the space of possible map functions a bit. Parameterizing the map function by a polynomial is a little redundant, as it allows for overall translations and rotations which don't change the shape or size of objects on the printed map. To eliminate overall translations, I'll set :math:`\theta_{x00}=0` and :math:`\theta_{y00}=0` in equations 3a-b. As an imperfect way to eliminate overall rotations, I'll also set :math:`\theta_{y01}=0` and :math:`\theta_{y10}=0`. This isn't perfect though, as the cubic and higher order terms end up looking like a rotation. So to stop the higher-order terms from rotating the map, I've also set :math:`\theta_{xkl}=0` when *l* is odd and :math:`\theta_{ykl}=0` when *k* is odd.  (A better solution would be to use orthogonal polynomials like `Legendre <https://en.wikipedia.org/wiki/Legendre_polynomials>`_ or `Chebyshev <https://en.wikipedia.org/wiki/Chebyshev_polynomials>`_ polynomials as a basis, but this makes calculating the derivatives needed for equation 2 just a little more complicated.)
+
+You can see all of this in code in the ``optimalmap.py`` file. The ``CoordinateTransform`` class is responsible for transforming coordinates given a set of parameters, the ``MetricCostEvaluator`` class is responsible for evaluating a cost for a given set of parameters and a ``CoordinateTransform`` (both directly and by returning a residuals vector to be squared and summed for the cost). Finally, there are two helper classes, ``LambertCylindricalQuadrature`` and ``LambertProjection`` for calculating the integrals over the map's domain. Once initialized, the best parameters are just found via a ``scipy.optimize.leastsq`` call, as shown in ``main.py``.
+
+
+The Results
+============
+
+So, what does it look like? After a call to ``scipy.optimize.leastsq``, in a minute or so on my machine I get a set of parameters which describe the map function which minimizes shape and size distortion. I then need to render the map. Normally, one would query a pixel (i, j) in the image to render and ask what color that should be. However, that requires knowing the inverse map from pixel (i, j) back to the world coordinates. But we don't have the inverse map, we only have the forward map. To avoid computing the inverse, what I do instead is calculate the forward map and interpolate onto pixels. This interpolation-based code is in the ``transformimage.ImageTransformer`` class. (A more elegant way would be to compute the inverse as a polynomial approximant, which can be done pretty quickly. But it's a little more work on the surface.)
+
+Doing all this for a map function parameterized by two 6 :math:`\times` 6 degree polynomials (N total parameters after constraining a few to zero) gives this map:
+
+
+I'll let the result speak for itself.
 
