@@ -41,7 +41,7 @@ def main():
         transform.degree[0], round(area_penalty))
     np.savetxt(basename + '.csv', transform.params, delimiter=',')
     new_image = transform_image(old_image, transform)
-    plt.imsave(basename + '.png', new_image)
+    plt.imsave(basename + '.jpg', new_image)
     return new_image, transform
 
 
