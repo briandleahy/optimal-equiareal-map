@@ -146,16 +146,15 @@ class SansonProjection(object):
 
 
 class MetricCostEvaluator(object):
-    def __init__(self, nquadpts=30, degree=(5, 5), area_penalty=1.,
-                 yrange=None):
-        if yrange is None:
-            max_latitude_radians = np.pi * 80 / 180.
-            ymax = np.sin(max_latitude_radians)
-            yrange = (-ymax, ymax)
-        self.yrange = yrange
-        self.quadobj = LambertCylindricalQuadrature(
-            nxpts=nquadpts, yrange=self.yrange)
-        self.projection = LambertProjection(self.quadobj.pts)
+    def __init__(
+            self,
+            projection_name='lambert',
+            nquadpts=30,
+            degree=(5, 5),
+            area_penalty=1.,
+            yrange=None):
+        self.quadobj = self._make_quadobj(yrange, nquadpts)
+        self.projection = self._make_projection(projection_name)
         self.transform = CoordinateTransform(degree=degree)
         self.area_penalty = area_penalty
 
@@ -195,6 +194,23 @@ class MetricCostEvaluator(object):
         # 3. The new metric
         new_metric = np.einsum('...ij,...ik,...jl', old_metric, dXdx, dXdx)
         return new_metric
+
+    def _make_quadobj(self, yrange, nquadpts):
+        if yrange is None:
+            max_latitude_radians = np.pi * 80 / 180.
+            ymax = np.sin(max_latitude_radians)
+            yrange = (-ymax, ymax)
+        return LambertCylindricalQuadrature(nxpts=nquadpts, yrange=yrange)
+
+    def _make_projection(self, projection_name):
+        projection_name = projection_name.lower()
+        if 'lambert' == projection_name:
+            cls = LambertProjection
+        elif 'sanson' == projection_name:
+            cls = SansonProjection
+        else:
+            raise ValueError(f"Invalid projection: {projection_name}")
+        return cls(self.quadobj.pts)
 
 
 def l2av(x):

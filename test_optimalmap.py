@@ -311,65 +311,89 @@ class TestMetricCostEvaluator(unittest.TestCase):
         self.assertTrue(np.linalg.norm(vals_0) < np.linalg.norm(vals_2))
 
     def test_area_penalty_does_not_effect_equiareal(self):
-        fitter = MetricCostEvaluator(area_penalty=1.0)
-        params = fitter.params
+        for projection_name in ['lambert', 'sanson']:
+            fitter = MetricCostEvaluator(
+                area_penalty=1.0,
+                projection_name=projection_name)
+            params = fitter.params
 
-        fitter.update_area_penalty(0.0)
-        vals_0 = fitter.call(params)
-        fitter.update_area_penalty(2.0)
-        vals_2 = fitter.call(params)
-        self.assertTrue(
-            np.isclose(np.linalg.norm(vals_0), np.linalg.norm(vals_2), **TOLS))
+            fitter.update_area_penalty(0.0)
+            vals_0 = fitter.call(params)
+            fitter.update_area_penalty(2.0)
+            vals_2 = fitter.call(params)
+            with self.subTest(projection_name=projection_name):
+                self.assertAlmostEqual(
+                    np.linalg.norm(vals_0),
+                    np.linalg.norm(vals_2),
+                    places=14)
 
-    @unittest.expectedFailure  # fails because of singularity at the poles
-    def test_cost_is_invariant_to_nquadpts(self):
-        fitter10 = MetricCostEvaluator(area_penalty=3.0, nquadpts=10)
-        fitter50 = MetricCostEvaluator(area_penalty=3.0, nquadpts=50)
+    def test_cost_is_invariant_to_nquadpts_when_sanson(self):
+        kwargs = {'projection_name': 'sanson', 'area_penalty': 3.0}
+        fitter10 = MetricCostEvaluator(nquadpts=10, **kwargs)
+        fitter50 = MetricCostEvaluator(nquadpts=50, **kwargs)
         params = fitter10.params
 
         cost10 = np.sum(fitter10.call(params)**2)
         cost50 = np.sum(fitter50.call(params)**2)
         self.assertAlmostEqual(cost10, cost50, places=7)
 
-    @unittest.expectedFailure  # fails because of singularity at the poles
-    def test_area_cost_is_invariant_to_nquadpts(self):
-        fitter10 = MetricCostEvaluator(area_penalty=3.0, nquadpts=10)
-        fitter20 = MetricCostEvaluator(area_penalty=3.0, nquadpts=20)
-        params = fitter10.params
+    def test_area_cost_is_invariant_to_nquadpts_when_sanson(self):
+        kwargs = {'projection_name': 'sanson', 'area_penalty': 3.0}
+        fitter40 = MetricCostEvaluator(nquadpts=40, **kwargs)
+        fitter80 = MetricCostEvaluator(nquadpts=80, **kwargs)
+        params = fitter40.params
+
         # We want the area to be not-conserved, so:
         np.random.seed(2)
         params += np.random.randn(params.size) * 1e-2
-        fitter10.update(params)
-        fitter20.update(params)
 
-        metric_error10, area_error10 = fitter10.calculate_metric_residuals()
-        metric_error20, area_error20 = fitter20.calculate_metric_residuals()
+        def get_error(fitter):
+            fitter.update(params)
+            _, area_residuals = fitter.calculate_metric_residuals()
+            return np.sum(area_residuals**2)
 
-        area_cost_10 = np.sum(area_error10**2)
-        area_cost_20 = np.sum(area_error20**2)
-        self.assertAlmostEqual(area_cost_10, area_cost_20, places=7)
+        area_cost_40 = get_error(fitter40)
+        area_cost_80 = get_error(fitter80)
+        self.assertAlmostEqual(area_cost_40 / area_cost_80, 1, places=10)
 
     def test_default_yrange_is_large_enough(self):
         # We want the yrange to be "near" (-1, 1), but to be away
         # from (-1, 1) to avoid the 1/sin(pi/2) problem.
         fitter = MetricCostEvaluator()
-        self.assertLess(fitter.yrange[0], -0.9)
-        self.assertGreater(fitter.yrange[1], 0.9)
+        self.assertLess(fitter.quadobj.yrange[0], -0.9)
+        self.assertGreater(fitter.quadobj.yrange[1], 0.9)
 
     def test_default_yrange_is_small_enough(self):
         # We want the yrange to be "near" (-1, 1), but to be away
         # from (-1, 1) to avoid the 1/sin(pi/2) problem.
         fitter = MetricCostEvaluator()
-        self.assertGreater(fitter.yrange[0], -0.99)
-        self.assertLess(fitter.yrange[1], 0.99)
+        self.assertGreater(fitter.quadobj.yrange[0], -0.99)
+        self.assertLess(fitter.quadobj.yrange[1], 0.99)
 
     def test_default_yrange_affects_integration(self):
         # We want the yrange to be "near" (-1, 1), but to be away
         # from (-1, 1) to avoid the 1/sin(pi/2) problem.
         fitter = MetricCostEvaluator()
-        total_area = np.ptp(fitter.yrange) * 2 * np.pi
+        total_area = np.ptp(fitter.quadobj.yrange) * 2 * np.pi
         integrated_area = fitter.quadobj.wts.sum()
         self.assertAlmostEqual(total_area, integrated_area, places=14)
+
+    def test_make_projection_when_lambert(self):
+        fitter = MetricCostEvaluator()
+        projection = fitter._make_projection('lambert')
+        self.assertIsInstance(projection, LambertProjection)
+
+    def test_make_projection_when_sanson(self):
+        fitter = MetricCostEvaluator()
+        projection = fitter._make_projection('sanson')
+        self.assertIsInstance(projection, SansonProjection)
+
+    def test_make_projection_when_other(self):
+        fitter = MetricCostEvaluator()
+        self.assertRaises(
+            ValueError,
+            fitter._make_projection,
+            'invalid')
 
 
 class TestMisc(unittest.TestCase):
