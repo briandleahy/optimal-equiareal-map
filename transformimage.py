@@ -69,12 +69,13 @@ class ImageTransformer(object):
         # We take the pixel locations to be at the left edge, which
         # means we need to pad +1 and take[:-1]
         ny, nx = self.image.shape[:2]
-        xold = np.linspace(-np.pi, np.pi, nx + 1)[:-1].reshape(1, -1)
-        yold = np.linspace(-1,     1,     ny + 1)[:-1].reshape(-1, 1)
+        xflat = np.linspace(-np.pi, np.pi, nx + 1)[:-1]
+        yflat = np.linspace(-1,     1,     ny + 1)[:-1]
+        yold, xold = np.meshgrid(yflat, xflat, indexing='ij')
         transformed_x, transformed_y = self.transformation.evaluate(xold, yold)
 
-        xscale = self.image.shape[1] / (2 * np.pi)
         yscale = self.image.shape[0] / 2
+        xscale = self.image.shape[1] / (2 * np.pi)
 
         coordinates_and_scales = (
             [transformed_x, xscale],
