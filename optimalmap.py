@@ -132,6 +132,19 @@ class LambertProjection(object):
         # the legendre points aren't selected at y=+-1
 
 
+class SansonProjection(object):
+    def __init__(self, xypts):
+        phi = xypts[:, 0]
+        theta = np.arccos(xypts[:, 1])
+
+        phi_sin_theta = phi * np.sin(theta)
+        self.metric = np.zeros([xypts.shape[0], 2, 2])
+        self.metric[:, 0, 0] = 1
+        self.metric[:, 1, 0] = phi_sin_theta
+        self.metric[:, 0, 1] = phi_sin_theta
+        self.metric[:, 1, 1] = 1 + phi_sin_theta**2
+
+
 class MetricCostEvaluator(object):
     def __init__(self, nquadpts=30, degree=(5, 5), area_penalty=1.,
                  yrange=None):

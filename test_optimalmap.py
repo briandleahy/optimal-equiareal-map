@@ -253,6 +253,22 @@ class TestLambertProjection(unittest.TestCase):
         self.assertTrue(np.allclose(det, 1, **TOLS))
 
 
+class TestSansonProjection(unittest.TestCase):
+    def test_init_gives_symmetric_metric(self):
+        np.random.seed(72)
+        xypts = 1 - 2 * np.random.rand(200, 2)  # on [-1, 1] = subset of Lambert
+        sanson = SansonProjection(xypts)
+        self.assertTrue(
+            np.all(sanson.metric[:, 0, 1] == sanson.metric[:, 1, 0]))
+
+    def test_init_gives_metric_with_determinant_of_one(self):
+        np.random.seed(72)
+        xypts = 1 - 2 * np.random.rand(200, 2)  # on [-1, 1] = subset of Lambert
+        sanson = SansonProjection(xypts)
+        det = np.linalg.det(sanson.metric)
+        self.assertTrue(np.allclose(det, 1, **TOLS))
+
+
 class TestMetricCostEvaluator(unittest.TestCase):
     def test_calculate_metric_when_no_transformation(self):
         fitter = MetricCostEvaluator()
