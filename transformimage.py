@@ -47,6 +47,9 @@ class ImageTransformer(object):
             raise ValueError(msg)
         self.image = image
         self.transformation = transformation
+        # Hard-coded for lambert projection:
+        self.range_x = (-np.pi, np.pi)
+        self.range_y = (-1, 1)
 
     def transform_image(self):
         transformed_points = self._transform_pixel_locations()
@@ -65,17 +68,14 @@ class ImageTransformer(object):
         return new_image
 
     def _transform_pixel_locations(self):
-        # +- pi, +- 1 are hard-coded for the Lambert projection
-        # We take the pixel locations to be at the left edge, which
-        # means we need to pad +1 and take[:-1]
         ny, nx = self.image.shape[:2]
-        xflat = np.linspace(-np.pi, np.pi, nx + 1)[:-1]
-        yflat = np.linspace(-1,     1,     ny + 1)[:-1]
+        xflat = np.linspace(*self.range_x, nx + 1)[:-1]
+        yflat = np.linspace(*self.range_y, ny + 1)[:-1]
         yold, xold = np.meshgrid(yflat, xflat, indexing='ij')
         transformed_x, transformed_y = self.transformation.evaluate(xold, yold)
 
-        yscale = self.image.shape[0] / 2
-        xscale = self.image.shape[1] / (2 * np.pi)
+        yscale = self.image.shape[0] / np.ptp(self.range_y)
+        xscale = self.image.shape[1] / np.ptp(self.range_x)
 
         coordinates_and_scales = (
             [transformed_x, xscale],
