@@ -228,14 +228,6 @@ class TestLambertQuadrature(unittest.TestCase):
 
         self.assertTrue(np.isclose(surface_area, 4 * np.pi, **TOLS))
 
-    def test_ybounds_on_constant(self):
-        yrange = (-0.5, 0.5)
-        quad = LambertCylindricalQuadrature(nxpts=30, yrange=yrange)
-        f = lambda x: np.ones(x.shape[0])
-        integrated_area = quad.integrate(f)
-        fractional_area = 4 * np.pi * (yrange[1] - yrange[0]) / 2
-        self.assertAlmostEqual(integrated_area, fractional_area, places=14)
-
 
 class TestLambertProjection(unittest.TestCase):
     def test_init_gives_diagonal_metric(self):
@@ -355,28 +347,6 @@ class TestMetricCostEvaluator(unittest.TestCase):
         area_cost_40 = get_error(fitter40)
         area_cost_80 = get_error(fitter80)
         self.assertAlmostEqual(area_cost_40 / area_cost_80, 1, places=10)
-
-    def test_default_yrange_is_large_enough(self):
-        # We want the yrange to be "near" (-1, 1), but to be away
-        # from (-1, 1) to avoid the 1/sin(pi/2) problem.
-        fitter = MetricCostEvaluator()
-        self.assertLess(fitter.quadobj.yrange[0], -0.9)
-        self.assertGreater(fitter.quadobj.yrange[1], 0.9)
-
-    def test_default_yrange_is_small_enough(self):
-        # We want the yrange to be "near" (-1, 1), but to be away
-        # from (-1, 1) to avoid the 1/sin(pi/2) problem.
-        fitter = MetricCostEvaluator()
-        self.assertGreater(fitter.quadobj.yrange[0], -0.99)
-        self.assertLess(fitter.quadobj.yrange[1], 0.99)
-
-    def test_default_yrange_affects_integration(self):
-        # We want the yrange to be "near" (-1, 1), but to be away
-        # from (-1, 1) to avoid the 1/sin(pi/2) problem.
-        fitter = MetricCostEvaluator()
-        total_area = np.ptp(fitter.quadobj.yrange) * 2 * np.pi
-        integrated_area = fitter.quadobj.wts.sum()
-        self.assertAlmostEqual(total_area, integrated_area, places=14)
 
     def test_make_projection_when_lambert(self):
         fitter = MetricCostEvaluator()

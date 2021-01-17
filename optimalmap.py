@@ -23,6 +23,16 @@ import numpy as np
 polyval2d = np.polynomial.polynomial.polyval2d  # shorter alias
 
 
+class ChainTransform(object):
+    def __init__(self, transforms):
+        self.transforms = transforms
+
+    def evaluate(self, x, y):
+        for transform in self.transforms:
+            x, y = transform.evaluate(x, y)
+        return x, y
+
+
 class CoordinateTransform(object):
     def __init__(self, degree=(5, 5)):
         """
@@ -80,19 +90,23 @@ class CoordinateTransform(object):
         return mask
 
 
+class LambertToSansonTransform(object):
+    def evaluate(self, x, y):
+        phi = x
+        theta = np.arcsin(y)
+        return phi * np.cos(theta), theta
+
+
 class LambertCylindricalQuadrature(object):
-    def __init__(self, nxpts=30, yrange=(-1, 1)):
+    def __init__(self, nxpts=30):
         self.nxpts = nxpts
-        self.yrange = yrange
         self.nypts = int(nxpts / np.pi) + 1
         self._setup_pts()
 
     def _setup_pts(self):
         # x runs from -pi, pi; y from -1, 1. So we need to adjust px, wx:
-        px, wx = generate_leggauss_pts_and_wts(
-            -np.pi, np.pi, npts=self.nxpts)
-        py, wy = generate_leggauss_pts_and_wts(
-            self.yrange[0], self.yrange[1], self.nypts)
+        px, wx = generate_leggauss_pts_and_wts(-np.pi, np.pi, npts=self.nxpts)
+        py, wy = generate_leggauss_pts_and_wts(-1,     1,     npts=self.nypts)
         xp, yp = np.meshgrid(px, py, indexing='ij')
         self._xypts = np.array([[x, y] for x, y in zip(xp.flat, yp.flat)])
         self._xywts = np.outer(wx, wy).ravel()
@@ -134,15 +148,16 @@ class LambertProjection(object):
 
 class SansonProjection(object):
     def __init__(self, xypts):
+        """metric is stored in order longitude-like, latitude-like"""
         phi = xypts[:, 0]
-        theta = np.arccos(xypts[:, 1])
+        theta = np.arcsin(xypts[:, 1])
 
         phi_sin_theta = phi * np.sin(theta)
         self.metric = np.zeros([xypts.shape[0], 2, 2])
-        self.metric[:, 0, 0] = 1
+        self.metric[:, 0, 0] = 1 + phi_sin_theta**2
         self.metric[:, 1, 0] = phi_sin_theta
         self.metric[:, 0, 1] = phi_sin_theta
-        self.metric[:, 1, 1] = 1 + phi_sin_theta**2
+        self.metric[:, 1, 1] = 1
 
 
 class MetricCostEvaluator(object):
@@ -151,9 +166,8 @@ class MetricCostEvaluator(object):
             projection_name='lambert',
             nquadpts=30,
             degree=(5, 5),
-            area_penalty=1.,
-            yrange=None):
-        self.quadobj = self._make_quadobj(yrange, nquadpts)
+            area_penalty=1.):
+        self.quadobj = LambertCylindricalQuadrature(nxpts=nquadpts)
         self.projection = self._make_projection(projection_name)
         self.transform = CoordinateTransform(degree=degree)
         self.area_penalty = area_penalty
@@ -194,13 +208,6 @@ class MetricCostEvaluator(object):
         # 3. The new metric
         new_metric = np.einsum('...ij,...ik,...jl', old_metric, dXdx, dXdx)
         return new_metric
-
-    def _make_quadobj(self, yrange, nquadpts):
-        if yrange is None:
-            max_latitude_radians = np.pi * 80 / 180.
-            ymax = np.sin(max_latitude_radians)
-            yrange = (-ymax, ymax)
-        return LambertCylindricalQuadrature(nxpts=nquadpts, yrange=yrange)
 
     def _make_projection(self, projection_name):
         projection_name = projection_name.lower()
