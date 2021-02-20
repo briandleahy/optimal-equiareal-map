@@ -8,29 +8,6 @@ import optimalmap
 from transformimage import transform_image
 
 
-def find_optimal_map(area_penalty, degree=8, nquadpts=85, quiet=False,
-                     mode='sanson'):
-    cost_evaluator = optimalmap.MetricCostEvaluator(
-        projection_name=mode,
-        degree=(degree, degree),
-        area_penalty=area_penalty,
-        nquadpts=nquadpts)
-    initial_guess = cost_evaluator.params
-    if not quiet:
-        print('Area penalty={}'.format(area_penalty))
-        print('\tInitial Cost: \t{:.6f}'.format(
-            np.sum(cost_evaluator.call(initial_guess)**2)))
-    fit_result = leastsq(cost_evaluator.call, initial_guess)
-    cost_evaluator.update(fit_result[0])
-    dg, da = cost_evaluator.calculate_metric_residuals()
-    if not quiet:
-        print('\tFinal Cost:\t{:.6f}'.format(
-            np.sum(cost_evaluator.call(fit_result[0])**2)))
-        print('\tEquiareal to \t{:.6f}'.format(np.sum(da**2)))
-        print('\t``Flat`` to \t{:.6f}'.format(np.sum(dg**2)))
-    return cost_evaluator
-
-
 def main(mode='sanson', degree=8, nquadpts=None, area_penalty=30.0,
          quiet=False):
     if nquadpts is None:
@@ -63,6 +40,29 @@ def main(mode='sanson', degree=8, nquadpts=None, area_penalty=30.0,
         delimiter=',')
     plt.imsave(basename + '.jpg', new_image)
     return new_image, transform
+
+
+def find_optimal_map(area_penalty, degree=8, nquadpts=85, quiet=False,
+                     mode='sanson'):
+    cost_evaluator = optimalmap.MetricCostEvaluator(
+        projection_name=mode,
+        degree=(degree, degree),
+        area_penalty=area_penalty,
+        nquadpts=nquadpts)
+    initial_guess = cost_evaluator.params
+    if not quiet:
+        print('Area penalty={}'.format(area_penalty))
+        print('\tInitial Cost: \t{:.6f}'.format(
+            np.sum(cost_evaluator.call(initial_guess)**2)))
+    fit_result = leastsq(cost_evaluator.call, initial_guess)
+    cost_evaluator.update(fit_result[0])
+    dg, da = cost_evaluator.calculate_metric_residuals()
+    if not quiet:
+        print('\tFinal Cost:\t{:.6f}'.format(
+            np.sum(cost_evaluator.call(fit_result[0])**2)))
+        print('\tEquiareal to \t{:.6f}'.format(np.sum(da**2)))
+        print('\t``Flat`` to \t{:.6f}'.format(np.sum(dg**2)))
+    return cost_evaluator
 
 
 parser = argparse.ArgumentParser()
